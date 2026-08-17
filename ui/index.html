@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+
+<html lang="ru">
+
+<head>
+
+<meta charset="UTF-8">
+
+<title data-i18n="app.title">
+    FreeTurn Admin
+</title>
+
+<link
+    rel="stylesheet"
+    href="/css/style.css">
+
+
+</head>
+
+<body>
+
+<div class="layout">
+
+
+<!-- =========================
+     MAIN AREA
+========================== -->
+
+<div class="main">
+
+
+    <!-- =========================
+         TOPBAR
+    ========================== -->
+
+    <div class="topbar">
+
+        <div class="app-title">
+
+            <h2 data-i18n="app.title">
+                FreeTurn Admin
+            </h2>
+
+            <span id="admin-version"></span>
+
+        </div>
+
+
+        <select
+            id="lang-switcher"
+            class="lang-switcher"
+            onchange="I18N.setLanguage(this.value)"
+            title="Language">
+
+            <option value="ru">
+                Русский
+            </option>
+
+            <option value="en">
+                English
+            </option>
+
+        </select>
+
+    </div>
+
+
+    <!-- =========================
+         TABS
+    ========================== -->
+
+    <div class="tabs">
+
+        <button
+            type="button"
+            onclick="showTab('clients')"
+            data-i18n="tabs.clients">
+
+            Клиенты
+
+        </button>
+
+
+        <button
+            type="button"
+            onclick="showTab('server')"
+            data-i18n="tabs.server">
+
+            Настройки сервера
+
+        </button>
+
+
+        <button
+            type="button"
+            onclick="showTab('connection')"
+            data-i18n="tabs.settings">
+
+            Параметры генерации URI/QR
+
+        </button>
+
+    </div>
+
+
+    <!-- =========================
+         CONTENT
+    ========================== -->
+
+    <div id="content">
+
+
+        <!-- =========================
+             CLIENTS TAB
+        ========================== -->
+
+        <div
+            id="tab-clients"
+            class="tab">
+
+            <div class="clients-toolbar">
+
+                <button
+                    type="button"
+                    onclick="loadClients()"
+                    data-i18n="actions.refresh">
+
+                    Обновить
+
+                </button>
+
+                <input
+                    id="client-search"
+                    type="search"
+                    placeholder="Поиск клиентов..."
+                    data-i18n-placeholder="clients.search_placeholder"
+                    autocomplete="new-password"
+                    autocapitalize="off"
+                    autocorrect="off"
+                    spellcheck="false"
+                    data-lpignore="true"
+                    data-1p-ignore="true">
+
+
+
+                <div
+                    id="clients-auth-status"
+                    class="clients-auth-status">
+                </div>
+
+
+                <input
+                    id="client-comment"
+                    type="text"
+                    data-i18n-placeholder="clients.new_comment"
+                    placeholder="Комментарий нового клиента"
+                    autocomplete="new-password"
+                    autocapitalize="sentences"
+                    spellcheck="true">
+
+
+                <button
+                    type="button"
+                    onclick="ClientsModule.add()"
+                    data-i18n="actions.add">
+
+                    Добавить
+
+                </button>
+
+            </div>
+
+
+            <div class="clients-table-wrap">
+
+                <table class="clients-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th data-i18n="clients.id">
+                                ID
+                            </th>
+
+                            <th data-i18n="clients.comment">
+                                Комментарий
+                            </th>
+
+                            <th data-i18n="clients.actions">
+                                Действия
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="clients-table"></tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================
+             SERVER TAB
+        ========================== -->
+
+        <div
+            id="tab-server"
+            class="tab hidden">
+
+            <div id="server-settings-form"></div>
+
+        </div>
+
+
+        <!-- =========================
+             CONNECTION TAB
+             SCHEMA DRIVEN
+        ========================== -->
+
+        <div
+            id="tab-connection"
+            class="tab hidden">
+
+            <div id="connection-form"></div>
+
+        </div>
+
+
+    </div>
+    <!-- /content -->
+
+
+</div>
+<!-- /main -->
+
+
+<!-- =========================
+     RIGHT PANEL
+========================== -->
+
+<div class="right-panel">
+
+
+    <!-- =========================
+         ADMINISTRATION
+    ========================== -->
+
+    <div class="panel-section">
+
+        <h3 data-i18n="panel.admin">
+            Администрирование
+        </h3>
+
+
+        <button
+            type="button"
+            onclick="logout()"
+            data-i18n="auth.logout">
+
+            Выход
+
+        </button>
+
+
+        <button
+            type="button"
+            onclick="openPasswordModal()"
+            data-i18n="auth.change_password">
+
+            Изменить пароль
+
+        </button>
+
+    </div>
+
+
+    <!-- =========================
+         SERVER ACTIONS
+    ========================== -->
+
+    <div class="panel-section">
+
+        <h3 data-i18n="panel.server">
+            Сервер
+        </h3>
+
+
+        <button
+            type="button"
+            onclick="refreshSystem()"
+            data-i18n="actions.refresh_status">
+
+            Обновить статус
+
+        </button>
+
+
+        <button
+            type="button"
+            id="restart-btn"
+            data-i18n="actions.restart">
+
+            Перезапуск
+
+        </button>
+
+
+        <button
+            type="button"
+            id="update-server-btn"
+            data-i18n="actions.update_server">
+        
+            Обновить сервер
+        
+        </button>
+
+
+        <button
+            type="button"
+            onclick="openEventLog()"
+            data-i18n="actions.event_log">
+
+            Журнал событий
+
+        </button>
+
+
+        <button
+            type="button"
+            onclick="openServerLog()"
+            data-i18n="actions.server_log">
+
+            Лог сервера
+
+        </button>
+
+    </div>
+
+
+    <!-- =========================
+         SYSTEM STATUS
+    ========================== -->
+
+    <div class="panel-section">
+
+        <div id="system-card"></div>
+
+    </div>
+
+
+</div>
+<!-- /right-panel -->
+
+
+</div>
+<!-- /layout -->
+
+<!-- =========================
+     EVENT LOG MODAL
+========================== -->
+
+<div
+    id="eventlog-modal"
+    class="modal hidden">
+
+
+<div class="modal-window eventlog-window">
+
+    <div class="modal-header">
+
+        <h3 data-i18n="actions.event_log">
+            Журнал событий
+        </h3>
+
+        <button
+            type="button"
+            class="modal-close"
+            onclick="closeEventLog">
+
+            ×
+
+        </button>
+
+    </div>
+
+
+    <div
+        id="eventlog-list"
+        class="event-log-list">
+    </div>
+
+
+    <div class="modal-footer">
+
+        <button
+            type="button"
+            onclick="closeEventLog()"
+            data-i18n="actions.close">
+
+            Закрыть
+
+        </button>
+
+    </div>
+
+</div>
+
+
+</div>
+
+<!-- =========================
+     URI CLIENT CONFIG MODAL
+========================== -->
+
+<div
+    id="uri-client-config-modal"
+    class="modal hidden">
+
+
+<div
+    class="modal-window uri-client-config-window">
+
+    <div class="modal-header">
+
+        <h3 id="uri-client-config-modal-title" data-i18n="uri_client_config.title">
+            Конфигурация клиента WireGuard
+        </h3>
+
+
+        <button
+            type="button"
+            class="modal-close"
+            id="uri-client-config-close">
+
+            ×
+
+        </button>
+
+    </div>
+
+
+    <div class="modal-body">
+
+        <p
+            id="uri-client-config-modal-description"
+            class="uri-client-config-description"
+            data-i18n="uri_client_config.description">
+
+            Укажите конфигурацию клиента или оставьте поле пустым, если клиент будет настроен вручную.
+
+        </p>
+
+
+        <textarea
+            id="uri-client-config-value"
+            class="uri-client-config-value"
+            rows="20"
+            spellcheck="false"
+            autocomplete="off"></textarea>
+
+
+        <input
+            id="uri-client-config-file-input"
+            type="file"
+            accept=".conf,.txt"
+            hidden>
+
+    </div>
+
+
+    <div class="modal-footer">
+
+        <button
+            type="button"
+            id="uri-client-config-file"
+            data-i18n="uri_client_config.load_file">
+
+            Загрузить из файла
+
+        </button>
+
+
+        <button
+            type="button"
+            id="uri-client-config-cancel"
+            data-i18n="actions.cancel">
+
+            Отмена
+
+        </button>
+
+
+        <button
+            type="button"
+            id="uri-client-config-continue"
+            data-i18n="actions.continue">
+
+            Продолжить
+
+        </button>
+
+    </div>
+
+</div>
+
+
+</div>
+
+<!-- =========================
+     URI EXPORT MODAL
+========================== -->
+
+<div
+    id="uri-export-modal"
+    class="modal hidden">
+
+
+<div
+    class="modal-window uri-export-window">
+
+    <div class="modal-header">
+
+        <h3 id="uri-export-modal-title" data-i18n="uri_export.title">
+            URI успешно сформирован
+        </h3>
+
+
+        <button
+            type="button"
+            class="modal-close"
+            id="uri-export-modal-close">
+
+            ×
+
+        </button>
+
+    </div>
+
+
+    <div class="modal-body">
+
+        <div class="uri-export-content">
+
+
+            <!-- QR CODE -->
+
+            <div class="uri-export-qr">
+
+                <div
+                    id="uri-export-qr"
+                    class="uri-export-qr-container">
+                </div>
+
+            </div>
+
+
+            <!-- URI -->
+
+            <div class="uri-export-data">
+
+                <label for="uri-export-value" data-i18n="uri_export.uri_label">
+                    URI подключения
+                </label>
+
+
+                <textarea
+                    id="uri-export-value"
+                    class="uri-export-value"
+                    readonly
+                    rows="5"></textarea>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+
+    <div class="modal-footer">
+
+        <button
+            type="button"
+            id="uri-export-modal-close-action"
+            data-i18n="actions.close">
+
+            Закрыть
+
+        </button>
+
+
+        <button
+            type="button"
+            id="uri-export-copy"
+            data-i18n="uri_export.copy">
+
+            Копировать URI
+
+        </button>
+
+    </div>
+
+</div>
+
+
+</div>
+
+<!-- =========================
+     UNIVERSAL DIALOG MODAL
+========================== -->
+
+<div
+    id="dialog-modal"
+    class="modal hidden">
+
+
+<div class="modal-window dialog-window">
+
+
+    <div class="modal-header">
+
+        <h3 id="dialog-modal-title"></h3>
+
+
+        <button
+            type="button"
+            class="modal-close"
+            id="dialog-modal-close">
+
+            ×
+
+        </button>
+
+    </div>
+
+
+    <div class="modal-body">
+
+        <div
+            id="dialog-modal-message"
+            class="dialog-modal-message">
+        </div>
+
+
+        <textarea
+            id="dialog-modal-whats-new"
+            class="dialog-modal-whats-new hidden"
+            readonly
+            spellcheck="false">
+        </textarea>
+
+
+        <input
+            id="dialog-modal-input"
+            class="dialog-modal-input hidden"
+            type="text"
+            name="client-comment"
+            autocomplete="new-password"
+            data-lpignore="true"
+            spellcheck="false">
+
+    </div>
+
+
+    <div class="modal-footer">
+
+        <button
+            type="button"
+            id="dialog-modal-cancel"
+            data-i18n="actions.cancel">
+
+            Отмена
+
+        </button>
+
+
+        <button
+            type="button"
+            id="dialog-modal-action"
+            data-i18n="actions.ok">
+
+            ОК
+
+        </button>
+
+    </div>
+
+
+</div>
+
+
+</div>
+
+<!-- =========================
+     PASSWORD MODAL
+========================== -->
+
+<div
+    id="password-modal"
+    class="modal hidden">
+
+
+<div class="modal-content">
+
+    <h3 data-i18n="password.title">
+        Изменение пароля
+    </h3>
+
+
+    <input
+        id="old-password"
+        type="password"
+        placeholder="Старый пароль"
+        data-i18n-placeholder="password.old"
+        autocomplete="current-password">
+
+
+    <input
+        id="new-user"
+        type="text"
+        placeholder="Имя пользователя"
+        data-i18n-placeholder="auth.username"
+        autocomplete="username">
+
+
+    <input
+        id="new-password"
+        type="password"
+        placeholder="Новый пароль"
+        data-i18n-placeholder="password.new"
+        autocomplete="new-password">
+
+
+    <input
+        id="new-password-confirm"
+        type="password"
+        placeholder="Повторите новый пароль"
+        data-i18n-placeholder="password.confirm"
+        autocomplete="new-password">
+
+
+    <div class="modal-actions">
+
+        <button
+            type="button"
+            onclick="changePassword()"
+            data-i18n="actions.save">
+
+            Сохранить
+
+        </button>
+
+
+        <button
+            type="button"
+            onclick="closePasswordModal()"
+            data-i18n="actions.cancel">
+
+            Отмена
+
+        </button>
+
+    </div>
+
+
+</div>
+
+
+</div>
+
+<!-- =========================
+     I18N
+========================== -->
+
+<script src="/js/i18n.js"></script>
+
+<!-- =========================
+     SCHEMAS
+========================== -->
+
+<script src="/js/schemas/server.schema.js"></script>
+
+<script src="/js/schemas/connection.schema.js"></script>
+
+<script src="/js/schemas/status.schema.js"></script>
+
+<script src="/js/schemas/schemaConditions.js"></script>
+
+<script src="/js/schemas/schemaRenderer.js"></script>
+
+<script src="/js/schemas/serverSettingsSchema.js"></script>
+
+<script src="/js/schemas/uriGenerationSettings.schema.js"></script>
+
+<!-- =========================
+     CORE HELPERS
+========================== -->
+
+<script src="/js/core/cli.js"></script>
+
+<script src="/js/core/apiClient.js"></script>
+
+<script src="/js/core/adminSettingsStore.js"></script>
+
+<script src="/js/core/store.js"></script>
+
+<script src="/js/core/toast.js"></script>
+
+<script src="/js/core/dialog.js"></script>
+
+<script src="/js/core/adminEntityLayer.js"></script>
+
+<script src="/js/core/adminStore.js"></script>
+
+<script src="/js/core/serverSettingsSchemaAdapter.js"></script>
+
+<script src="/js/core/runArgsParser.js"></script>
+
+<script src="/js/core/uriGenerationSettingsStore.js"></script>
+
+<script src="/js/core/uriExportDataCollector.js"></script>
+
+<script src="/js/core/uriExportPayloadBuilder.js"></script>
+
+<script src="/js/core/uriExportEncoder.js"></script>
+
+<!-- =========================
+     ENTITY LAYERS
+========================== -->
+
+<script src="/js/core/clientEntityLayer.js"></script>
+
+<script src="/js/core/serverEntityLayer.js"></script>
+
+<script src="/js/core/connectionEntityLayer.js"></script>
+
+<!-- =========================
+     STORES
+========================== -->
+
+<script src="/js/core/runArgsBuilder.js"></script>
+
+<script src="/js/core/clientStore.js"></script>
+
+<script src="/js/core/serverStore.js"></script>
+
+<script src="/js/core/serverSettingsStore.js"></script>
+
+<script src="/js/core/connectionStore.js"></script>
+
+<!-- =========================
+     SCHEMA ACCESS LAYER
+========================== -->
+
+<script src="/js/core/schemaEntityLayer.js"></script>
+
+<script src="/js/core/settingsModel.js"></script>
+
+<script src="/js/core/settingsValidator.js"></script>
+
+<!-- =========================
+     COMPATIBILITY API
+========================== -->
+
+<script src="/js/core/uiBridge.js"></script>
+
+<!-- =========================
+     UI MODULES
+========================== -->
+
+<script src="/js/modules/clients.js"></script>
+
+<script src="/js/modules/server.js"></script>
+
+<script src="/js/modules/connection.js"></script>
+
+<script src="/js/modules/uriGenerationSettingsModule.js"></script>
+
+<script src="/js/modules/status.js"></script>
+
+<script src="/js/modules/admin.js"></script>
+
+<script src="/js/modules/password.js"></script>
+
+<script src="/js/modules/eventLog.js"></script>
+
+
+<script src="/js/modules/logViewer.js"></script>
+
+<script src="/js/modules/auth.js"></script>
+
+<!-- =========================
+     VENDOR
+========================== -->
+
+<script src="/js/vendor/qrcode.min.js"></script>
+
+<!-- =========================
+     MODALS
+========================== -->
+
+<script src="/js/modules/uriExportModal.js"></script>
+
+<script src="/js/modules/uriClientConfigModal.js"></script>
+
+<!-- =========================
+     APPLICATION BOOTSTRAP
+========================== -->
+
+<script src="/js/app.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>
+        FreeTurn Admin
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="/css/style.css"
+    >
+
+</head>
+
+
+<body>
+
+
+<div class="login-container">
+
+    <div class="login-box">
+
+
+        <h2>
+            FreeTurn Admin
+        </h2>
+
+
+        <select
+            id="lang-switcher"
+            class="lang-switcher"
+            onchange="I18N.setLanguage(this.value)"
+            title="Language">
+
+            <option value="ru">
+                Русский
+            </option>
+
+            <option value="en">
+                English
+            </option>
+
+        </select>
+
+
+        <!--
+            Login form
+        -->
+
+
+        <div id="login-form-container">
+
+
+            <form
+                onsubmit="login(); return false;"
+            >
+
+
+                <input
+                    id="user"
+                    name="username"
+                    type="text"
+                    autocomplete="username"
+                    data-i18n-placeholder="auth.username"
+                    placeholder="Username"
+                    required
+                >
+
+
+                <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autocomplete="current-password"
+                    data-i18n-placeholder="auth.password"
+                    placeholder="Password"
+                    required
+                >
+
+
+                <button
+                    type="submit"
+                    data-i18n="auth.login"
+                >
+                    Login
+                </button>
+
+
+            </form>
+
+
+        </div>
+
+
+        <!--
+            Create administrator form
+        -->
+
+
+        <div
+            id="create-account-container"
+            style="display: none;"
+        >
+
+
+            <p
+                data-i18n="auth.no_admin"
+            >
+                Учётная запись администратора не найдена.
+            </p>
+
+
+            <p
+                data-i18n="auth.create_admin_hint"
+            >
+                Создайте новую учётную запись администратора.
+            </p>
+
+
+            <form
+                onsubmit="createAccount(); return false;"
+            >
+
+
+                <input
+                    id="create-user"
+                    name="username"
+                    type="text"
+                    autocomplete="username"
+                    placeholder="Username"
+                    required
+                >
+
+
+                <input
+                    id="create-password"
+                    name="password"
+                    type="password"
+                    autocomplete="new-password"
+                    placeholder="Password"
+                    required
+                >
+
+
+                <input
+                    id="create-password-confirm"
+                    name="password-confirm"
+                    type="password"
+                    autocomplete="new-password"
+                    placeholder="Confirm password"
+                    required
+                >
+
+
+                <button
+                    type="submit"
+                    data-i18n="auth.create_account"
+                >
+                    Создать учётную запись
+                </button>
+
+
+            </form>
+
+
+        </div>
+
+
+        <!--
+            Error message
+        -->
+
+
+        <div
+            id="login-error"
+            class="error"
+        ></div>
+
+
+    </div>
+
+
+</div>
+
+
+<script src="/js/i18n.js"></script>
+
+<script src="/js/login.js"></script>
+
+
+</body>
+
+</html>

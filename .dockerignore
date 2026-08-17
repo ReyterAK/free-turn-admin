@@ -1,0 +1,6 @@
+venv/
+*.tar
+.git
+__pycache__/
+*.pyc
+docs/

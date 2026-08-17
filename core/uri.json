@@ -1,0 +1,10 @@
+{
+  "v": "1",
+  "provider": "vk",
+  "n": 10,
+  "spc": 10,
+  "dns": "auto",
+  "dnss": "",
+  "mcap": false,
+  "bond": false
+}

@@ -1,0 +1,16 @@
+# build artifacts
+bin/
+*.tar
+
+# backups
+*.bak
+*.backup
+
+# editor/OS noise
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# local dev config (never inside the repo)
+free-turn-admin-dev-config/

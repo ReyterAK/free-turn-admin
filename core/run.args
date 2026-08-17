@@ -1,0 +1,12 @@
+-listen
+0.0.0.0:55555
+-connect
+10.10.20.1:51820
+-mode
+udp
+-obf-profile
+none
+-clients-file
+/config/clients.json
+-debug
+false
