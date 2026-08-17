@@ -37,6 +37,11 @@ func NewRouter(uiFS embed.FS, version string) *Router {
 // ---------------------------------------------------------------------
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	// Security headers for every response.
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("X-Frame-Options", "DENY")
+	w.Header().Set("Referrer-Policy", "no-referrer")
+
 	switch {
 	case req.URL.Path == "/healthz":
 		r.healthz(w, req)
