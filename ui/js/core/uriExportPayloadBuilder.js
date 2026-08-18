@@ -236,24 +236,8 @@ build(
 
 
     //
-    // Bonding.
+    // Bonding was removed in v3.0.0 (TCP tunnel mode dropped).
     //
-    // The parameter is meaningful only
-    // for TCP tunnel mode.
-    //
-    // For UDP mode it must not be included.
-    //
-
-    if (
-        data.mode === "tcp" &&
-        data.bond === true
-    ) {
-
-        payload.bond =
-            true;
-
-    }
-
 
     return payload;
 

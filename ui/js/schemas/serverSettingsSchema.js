@@ -254,43 +254,6 @@ fields: [
         ]
     },
 
-    {
-        key:
-            "mode",
-
-        cli:
-            "-mode",
-
-        title:
-            "server.mode",
-
-        tooltipKey:
-            "server.tooltip.mode",
-
-        group:
-            "network",
-
-        type:
-            "select",
-
-        error:
-            "server.validation.mode",
-
-        options: [
-
-            "udp",
-
-            "tcp"
-
-        ],
-
-        required:
-            true,
-
-        restart_required:
-            true
-    },
-
     //
     // =====================================================
     // Security

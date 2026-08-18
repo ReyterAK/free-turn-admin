@@ -124,11 +124,10 @@ const UriGenerationSettingsSchema = {
                 false,
 
             default:
-                "tcp",
+                "udp",
 
             options:
             [
-                "tcp",
                 "udp"
             ]
         },
@@ -280,44 +279,14 @@ const UriGenerationSettingsSchema = {
             required:
                 true
         },
-
+        //
 
         //
         // Bond
         //
-        // This parameter is stored here as a recommended
-        // URI-generation parameter.
+        // Removed in v3.0.0: the upstream server dropped TCP tunnel
+        // mode, and bond was TCP-only.
         //
-        // Whether it is actually included in a generated
-        // URI depends on the current server mode.
-        //
-        // The dependency on mode=tcp is resolved later
-        // by the URI generator because mode belongs to
-        // current server settings, not this JSON.
-        //
-
-        {
-            key:
-                "bond",
-
-            type:
-                "boolean",
-
-            titleKey:
-                "uri.bond",
-
-            tooltipKey:
-                "uri.tooltip.bond",
-
-            checkboxLabelKey:
-                "actions.enable",
-
-            group:
-                "current",
-
-            required:
-                true
-        }
 
     ]
 

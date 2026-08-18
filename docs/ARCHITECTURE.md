@@ -24,6 +24,5 @@ Modules
 
 Schemas
  ├── serverSchema
- ├── connectionSchema
  ├── statusSchema
  └── uriGenerationSettingsSchema

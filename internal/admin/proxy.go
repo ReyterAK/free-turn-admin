@@ -68,9 +68,27 @@ func parseArgs(text string) []string {
 	return args
 }
 
+// runArgsList returns the server launch arguments, with flags removed
+// by the upstream v3.0.0 release filtered out: -mode (TCP tunnel mode
+// was dropped; the server defaults to UDP) and -bond (TCP-only).
+// Safe for v2 (defaults to udp there as well).
 func runArgsList() []string {
-	text := readText(RunArgsFile)
-	return parseArgs(text)
+	args := parseArgs(readText(RunArgsFile))
+	filtered := args[:0]
+	skip := false
+	for _, a := range args {
+		if skip {
+			skip = false
+			continue
+		}
+		switch a {
+		case "-mode", "-bond":
+			skip = true // drop the flag and its value
+		default:
+			filtered = append(filtered, a)
+		}
+	}
+	return filtered
 }
 
 func proxyEnv() []string {

@@ -24,20 +24,6 @@ const SchemaEntityLayer = {
     // render helpers
     //
 
-    renderConnection(
-        containerId,
-        values = {}
-    ) {
-
-        return SchemaRenderer.render(
-            window.connectionSchema,
-            containerId,
-            values
-        );
-
-    },
-
-
     renderServer(
         containerId,
         values = {}

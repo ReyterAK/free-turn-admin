@@ -228,8 +228,9 @@ const UriExportDataCollector = {
         // =================================================
         //
 
+        // v3.0.0 removed TCP tunnel mode; the server is UDP-only.
         const mode =
-            serverSettings.mode;
+            serverSettings.mode || "udp";
 
 
         const obfProfile =
@@ -330,15 +331,8 @@ const UriExportDataCollector = {
 
 
             //
-            // uri.json
+            // bond was removed in v3.0.0 (TCP tunnel mode dropped).
             //
-            // bond will be interpreted by the builder
-            // only when mode === "tcp".
-            //
-
-            bond:
-                uriSettings.bond,
-
 
             //
             // temporary constant
