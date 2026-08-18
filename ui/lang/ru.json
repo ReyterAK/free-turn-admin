@@ -107,7 +107,7 @@
 "uri.tooltip.dns": "Способ разрешения DNS-имён, используемый клиентом.",
 "uri.tooltip.dnss": "Список DNS-серверов в формате ip[:port][,ip[:port]...].",
 "uri.tooltip.mcap": "При включении решение VK captcha выполняется вручную пользователем.",
-"uri.tooltip.transport": "Транспорт до TURN-реле. Поддерживается только UDP.",
+"uri.tooltip.transport": "Транспорт до TURN-реле. UDP снижает задержки, TCP - стабильнее.",
 "server.backend_status_hint": "Проверяются хост и порт. 'Доступен' — хост и порт отвечают; 'Порт недоступен' — хост пингуется, порт закрыт; 'IP недоступен' — хост не пингуется. Для UDP закрытый порт определяется по ICMP port-unreachable; молчание сервиса (WireGuard/Xray) считается нормой.",
 "clients.id_enabled": "Client ID: включено",
 "clients.id_disabled": "Client ID: отключено",

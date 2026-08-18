@@ -107,7 +107,7 @@
 "uri.tooltip.dns": "DNS resolution method used by the client.",
 "uri.tooltip.dnss": "List of DNS servers in the ip[:port][,ip[:port]...] format.",
 "uri.tooltip.mcap": "When enabled, VK captcha solving is performed manually by the user.",
-"uri.tooltip.transport": "Transport to the TURN relay. Only UDP is supported.",
+"uri.tooltip.transport": "Transport to the TURN relay. UDP lowers latency, TCP is more stable.",
 "server.backend_status_hint": "Checks host and port. 'Available' — host and port respond; 'Port unavailable' — host pings, port is closed; 'IP unreachable' — host does not respond. For UDP, a closed port is detected via ICMP port-unreachable; service silence (WireGuard/Xray) is treated as normal.",
 "clients.id_enabled": "Client ID: enabled",
 "clients.id_disabled": "Client ID: disabled",

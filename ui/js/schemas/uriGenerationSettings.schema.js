@@ -124,10 +124,11 @@ const UriGenerationSettingsSchema = {
                 false,
 
             default:
-                "udp",
+                "tcp",
 
             options:
             [
+                "tcp",
                 "udp"
             ]
         },
