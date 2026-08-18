@@ -19,10 +19,15 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
 const SessionCookie = "ft_admin_auth"
+
+// SessionLifetime is how long a login session stays valid.
+const SessionLifetime = 24 * time.Hour
 
 // ---------------------------------------------------------------------
 // auth.json
@@ -61,13 +66,15 @@ func currentCredentials() (string, string) {
 // ---------------------------------------------------------------------
 
 func sessionKey() []byte {
-	if data, err := os.ReadFile(SessionKeyFile); err == nil &&
-		len(data) >= 32 {
+	if data, err := os.ReadFile(SessionKeyFile); err == nil && len(data) >= 32 {
 		return data
 	}
 	key := make([]byte, 32)
 	if _, err := rand.Read(key); err == nil {
-		_ = writeText(SessionKeyFile, hex.EncodeToString(key))
+		// Persist the raw bytes so the generated key equals the key
+		// read back on the next call (a hex-encoded copy would sign
+		// the first cookie differently).
+		_ = os.WriteFile(SessionKeyFile, key, 0o600)
 		return key
 	}
 	// fallback: fixed key (should never happen)
@@ -80,21 +87,32 @@ func signSession(value string) string {
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
+// sessionCookie builds a versioned, timestamped session cookie:
+// "2.<unix_ts>.<hmac(ts)>". The server rejects cookies older than
+// SessionLifetime even if copied, and the browser Max-Age drops them.
 func sessionCookie() string {
-	return "1." + signSession("1")
+	ts := strconv.FormatInt(time.Now().Unix(), 10)
+	return "2." + ts + "." + signSession(ts)
 }
 
 func validSession(cookie string) bool {
 	if cookie == "" {
 		return false
 	}
-	parts := strings.SplitN(cookie, ".", 2)
-	if len(parts) != 2 || parts[0] != "1" {
+	parts := strings.SplitN(cookie, ".", 3)
+	if len(parts) != 3 || parts[0] != "2" {
+		return false
+	}
+	ts, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		return false
+	}
+	if time.Since(time.Unix(ts, 0)) > SessionLifetime {
 		return false
 	}
 	return hmac.Equal(
-		[]byte(parts[1]),
-		[]byte(signSession("1")),
+		[]byte(parts[2]),
+		[]byte(signSession(parts[1])),
 	)
 }
 

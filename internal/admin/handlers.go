@@ -97,6 +97,7 @@ func (r *Router) setSessionCookie(w http.ResponseWriter) {
 		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
+		MaxAge:   int(SessionLifetime.Seconds()),
 	})
 }
 
