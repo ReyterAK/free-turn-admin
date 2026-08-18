@@ -413,11 +413,6 @@ fields: [
                 "rtpopus",
                 "rtpopus2",
                 "rtpopus3"
-            ],
-
-            mode:
-            [
-                "udp"
             ]
         },
 
