@@ -915,10 +915,7 @@ async showPeerConfig(publicKey, name) {
                 title,
                 data.config || "",
                 {
-                    fileName: "WG.config",
-                    downloadUrl:
-                        "/api/wireguard/peer/config/download?public_key=" +
-                        encodeURIComponent(publicKey)
+                    fileName: "WG.config"
                 }
             );
 

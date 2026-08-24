@@ -961,59 +961,16 @@ saveButton.addEventListener(
 "click",
 () => {
 
-    const name =
-        saveButton.dataset.fileName ||
-        "WG.config";
-
-    const downloadUrl =
-        saveButton.dataset.downloadUrl ||
-        "";
-
-    const a =
-        document.createElement(
-            "a"
-        );
-
-    a.rel = "noopener";
-
-    document.body.appendChild(
-        a
-    );
-
-    // Серверное скачивание (Content-Disposition) — надёжно
-    // во всех браузерах; blob — только фолбэк.
-    if (downloadUrl) {
-
-        a.href = downloadUrl;
-
-        a.download = name;
-
-        a.click();
-
-        setTimeout(
-            () => {
-
-                if (
-                    a.parentNode
-                ) {
-
-                    a.parentNode.removeChild(
-                        a
-                    );
-
-                }
-
-            },
-            1000
-        );
-
-        return;
-
-    }
-
+    // Сохраняем ровно тот текст, что в окне — включая
+    // свежие правки администратора. Клиентский blob-файл,
+    // сервер не участвует.
     const text =
         whatsNew.value ||
         "";
+
+    const name =
+        saveButton.dataset.fileName ||
+        "WG.config";
 
     const blob =
         new Blob(
@@ -1028,10 +985,23 @@ saveButton.addEventListener(
             blob
         );
 
+    const a =
+        document.createElement(
+            "a"
+        );
+
     a.href = blobUrl;
 
     a.download = name;
 
+    a.rel = "noopener";
+
+    document.body.appendChild(
+        a
+    );
+
+    // Firefox: клик отдельным таском, revoke не раньше
+    // фактического старта скачивания.
     setTimeout(
         () => {
 
