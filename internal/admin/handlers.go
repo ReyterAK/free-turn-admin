@@ -196,6 +196,16 @@ func (r *Router) api(w http.ResponseWriter, req *http.Request) {
 		r.requireAuth(r.wireguardCreatePeer)(w, req)
 	case method == "GET" && path == "/api/wireguard/peer/config":
 		r.requireAuth(r.wireguardPeerConfig)(w, req)
+	case method == "GET" && path == "/api/wireguard/peer/config/download":
+		r.requireAuth(r.wireguardPeerConfigDownload)(w, req)
+	case method == "POST" && path == "/api/wireguard/interface":
+		r.requireAuth(r.wireguardCreateInterface)(w, req)
+	case method == "POST" && path == "/api/wireguard/interface/delete":
+		r.requireAuth(r.wireguardDeleteInterface)(w, req)
+	case method == "POST" && path == "/api/wireguard/peer":
+		r.requireAuth(r.wireguardCreatePeer)(w, req)
+	case method == "GET" && path == "/api/wireguard/peer/config":
+		r.requireAuth(r.wireguardPeerConfig)(w, req)
 	case method == "POST" && path == "/api/wireguard/interface":
 		r.requireAuth(r.wireguardCreateInterface)(w, req)
 	case method == "POST" && path == "/api/wireguard/interface/delete":

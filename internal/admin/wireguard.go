@@ -733,6 +733,64 @@ func clientCommentFor(id string) string {
 	return id
 }
 
+// wireguardPeerConfigDownload serves the client WG config as a real
+// file download (Content-Disposition: attachment) — the most
+// reliable way across browsers (no blob/revoke pitfalls).
+func (r *Router) wireguardPeerConfigDownload(w http.ResponseWriter, req *http.Request) {
+	pub := strings.TrimSpace(req.URL.Query().Get("public_key"))
+	if pub == "" {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "public_key_required",
+		})
+		return
+	}
+	store, err := LoadWGStore()
+	if err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+	kp := store.FindByPublicKey(pub)
+	if kp == nil {
+		writeJSONStatus(w, http.StatusNotFound, map[string]any{
+			"status": "error",
+			"error":  "not_found",
+		})
+		return
+	}
+
+	cfg, err := LoadRouterOSConfig()
+	if err != nil || cfg.URL == "" {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "not_configured",
+		})
+		return
+	}
+	client := routeros.New(cfg.URL, cfg.User, cfg.Pass, 6*time.Second)
+
+	text := buildClientConfig(
+		kp.PrivateKey,
+		kp.AllowedAddr,
+		serverPublicKeyFor(client, kp.WGInterface),
+		backendEndpoint(),
+		cfg.ClientDNS,
+	)
+
+	fileName := "WG.config"
+	if kp.Comment != "" {
+		fileName = "WG-" + sanitizeInterfaceName(kp.Comment) + ".conf"
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Content-Disposition", "attachment; filename=\""+fileName+"\"")
+	w.Header().Set("Cache-Control", "no-store")
+	_, _ = w.Write([]byte(text))
+}
+
 // wireguardSaveConfig stores the RouterOS connection settings.
 func (r *Router) wireguardSaveConfig(w http.ResponseWriter, req *http.Request) {
 	var body RouterOSConfig
@@ -752,14 +810,13 @@ func (r *Router) wireguardSaveConfig(w http.ResponseWriter, req *http.Request) {
 			body.Pass = cur.Pass
 		}
 	}
-	// DNS обязателен и должен быть IP-адресом.
-	body.ClientDNS = strings.TrimSpace(body.ClientDNS)
-	if net.ParseIP(body.ClientDNS) == nil {
-		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
-			"status": "error",
-			"error":  "invalid_dns",
-		})
-		return
+	// Пустой DNS = сохранить прежний (или дефолт).
+	if body.ClientDNS == "" {
+		if cur, err := LoadRouterOSConfig(); err == nil && cur.ClientDNS != "" {
+			body.ClientDNS = cur.ClientDNS
+		} else {
+			body.ClientDNS = defaultClientDNS
+		}
 	}
 	if err := SaveRouterOSConfig(body); err != nil {
 		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{

@@ -915,7 +915,10 @@ async showPeerConfig(publicKey, name) {
                 title,
                 data.config || "",
                 {
-                    fileName: "WG.config"
+                    fileName: "WG.config",
+                    downloadUrl:
+                        "/api/wireguard/peer/config/download?public_key=" +
+                        encodeURIComponent(publicKey)
                 }
             );
 
@@ -1288,12 +1291,12 @@ async saveConfig() {
 
         if (data.status === "ok") {
 
+            await this.refresh();
+
             this.showMsg(
                 safeT("wg.saved"),
                 "ok"
             );
-
-            await this.refresh();
 
         }
         else {

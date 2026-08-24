@@ -100,6 +100,10 @@ saveButton.dataset.fileName =
 options.fileName ||
 "WG.config";
 
+saveButton.dataset.downloadUrl =
+options.downloadUrl ||
+"";
+
 message.textContent =
 dialogMessage || "";
 
@@ -614,7 +618,10 @@ resolve => {
             editable: true,
             fileName:
                 options.fileName ||
-                "WG.config"
+                "WG.config",
+            downloadUrl:
+                options.downloadUrl ||
+                ""
         }
     );
 
@@ -954,13 +961,59 @@ saveButton.addEventListener(
 "click",
 () => {
 
-    const text =
-        whatsNew.value ||
-        "";
-
     const name =
         saveButton.dataset.fileName ||
         "WG.config";
+
+    const downloadUrl =
+        saveButton.dataset.downloadUrl ||
+        "";
+
+    const a =
+        document.createElement(
+            "a"
+        );
+
+    a.rel = "noopener";
+
+    document.body.appendChild(
+        a
+    );
+
+    // Серверное скачивание (Content-Disposition) — надёжно
+    // во всех браузерах; blob — только фолбэк.
+    if (downloadUrl) {
+
+        a.href = downloadUrl;
+
+        a.download = name;
+
+        a.click();
+
+        setTimeout(
+            () => {
+
+                if (
+                    a.parentNode
+                ) {
+
+                    a.parentNode.removeChild(
+                        a
+                    );
+
+                }
+
+            },
+            1000
+        );
+
+        return;
+
+    }
+
+    const text =
+        whatsNew.value ||
+        "";
 
     const blob =
         new Blob(
@@ -970,28 +1023,15 @@ saveButton.addEventListener(
             }
         );
 
-    const url =
+    const blobUrl =
         URL.createObjectURL(
             blob
         );
 
-    const a =
-        document.createElement(
-            "a"
-        );
-
-    a.href = url;
+    a.href = blobUrl;
 
     a.download = name;
 
-    a.rel = "noopener";
-
-    document.body.appendChild(
-        a
-    );
-
-    // Firefox: отложенный клик (нужен отдельный таск) и
-    // долгий revoke — скачивание не должно успеть отмениться.
     setTimeout(
         () => {
 
@@ -1011,7 +1051,7 @@ saveButton.addEventListener(
                     }
 
                     URL.revokeObjectURL(
-                        url
+                        blobUrl
                     );
 
                 },
