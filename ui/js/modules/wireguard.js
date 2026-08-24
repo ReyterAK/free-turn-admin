@@ -154,6 +154,11 @@ fillForm(data) {
             "wg-url"
         );
 
+    const user =
+        document.getElementById(
+            "wg-user"
+        );
+
     const poll =
         document.getElementById(
             "wg-poll"
@@ -162,17 +167,23 @@ fillForm(data) {
     if (url)
         url.value = data.url || "";
 
+    if (user)
+        user.value = data.user || "";
+
     if (poll)
         poll.value = data.poll_seconds || 15;
 
-    // Пароль намеренно не возвращается в браузер.
+    // Пароль намеренно не возвращается в браузер —
+    // показываем только признак «задан» (звёздочки).
     const pass =
         document.getElementById(
             "wg-pass"
         );
 
     if (pass)
-        pass.value = "";
+        pass.value = data.pass_set
+            ? "••••••••"
+            : "";
 
 },
 
@@ -222,6 +233,9 @@ async refresh() {
 
 async saveConfig() {
 
+    const passValue =
+        this.inputValue("wg-pass");
+
     const body = {
 
         url:
@@ -230,8 +244,11 @@ async saveConfig() {
         user:
             this.inputValue("wg-user"),
 
+        // Звёздочки/пусто = сохранить прежний пароль.
         pass:
-            this.inputValue("wg-pass"),
+            passValue === "••••••••"
+                ? ""
+                : passValue,
 
         poll_seconds:
             parseInt(

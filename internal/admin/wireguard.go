@@ -67,6 +67,8 @@ func (r *Router) wireguardStatus(w http.ResponseWriter, req *http.Request) {
 	resp := map[string]any{
 		"configured":   true,
 		"url":          cfg.URL,
+		"user":         cfg.User,
+		"pass_set":     cfg.Pass != "",
 		"poll_seconds": cfg.PollSeconds,
 	}
 
@@ -110,8 +112,10 @@ func classifyRouterOSError(err error) map[string]string {
 	case strings.Contains(msg, "401") || strings.Contains(low, "unauthorized"):
 		kind = "auth"
 	case strings.Contains(low, "not allowed") ||
-		strings.Contains(low, "forbidden") ||
-		strings.Contains(msg, "403"):
+		strings.Contains(low, "not enough permissions") ||
+		strings.Contains(low, "permission denied") ||
+		strings.Contains(msg, "403") ||
+		strings.Contains(low, "forbidden"):
 		kind = "permission"
 	}
 	return map[string]string{"kind": kind, "detail": msg}
@@ -129,6 +133,12 @@ func (r *Router) wireguardSaveConfig(w http.ResponseWriter, req *http.Request) {
 			"error":  "url_required",
 		})
 		return
+	}
+	// Пустой пароль в форме = не менять сохранённый.
+	if body.Pass == "" {
+		if cur, err := LoadRouterOSConfig(); err == nil {
+			body.Pass = cur.Pass
+		}
 	}
 	if err := SaveRouterOSConfig(body); err != nil {
 		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
