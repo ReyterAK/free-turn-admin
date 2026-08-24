@@ -399,9 +399,17 @@ renderInterfaces(list, err) {
                     "tr"
                 );
 
-            const status = iface.disabled === "true"
+            const disabled =
+                iface.disabled === true ||
+                iface.disabled === "true";
+
+            const running =
+                iface.running === true ||
+                iface.running === "true";
+
+            const status = disabled
                 ? safeT("wg.disabled")
-                : iface.running === "true"
+                : running
                     ? safeT("wg.running")
                     : safeT("wg.stopped");
 
@@ -410,11 +418,11 @@ renderInterfaces(list, err) {
             );
 
             tr.appendChild(
-                this.td(String(iface.listen_port || ""))
+                this.td(String(iface["listen-port"] || ""))
             );
 
             tr.appendChild(
-                this.td(iface.public_key || "")
+                this.td(iface["public-key"] || "")
             );
 
             tr.appendChild(
@@ -475,12 +483,15 @@ renderPeers(list, err) {
             const online =
                 peer.online === true;
 
-            const status =
-                peer.disabled === "true"
-                    ? safeT("wg.disabled")
-                    : online
-                        ? safeT("wg.online")
-                        : safeT("wg.offline");
+            const disabled =
+                peer.disabled === true ||
+                peer.disabled === "true";
+
+            const status = disabled
+                ? safeT("wg.disabled")
+                : online
+                    ? safeT("wg.online")
+                    : safeT("wg.offline");
 
             tr.appendChild(
                 this.td(peer.name || peer[".id"])
@@ -491,7 +502,7 @@ renderPeers(list, err) {
             );
 
             tr.appendChild(
-                this.td(peer.allowed_address || "")
+                this.td(peer["allowed-address"] || "")
             );
 
             tr.appendChild(
@@ -523,24 +534,24 @@ renderPeers(list, err) {
 
 endpoint(peer) {
 
-    if (peer.current_endpoint_address) {
+    if (peer["current-endpoint-address"]) {
 
         return (
-            peer.current_endpoint_address +
+            peer["current-endpoint-address"] +
             ":" +
-            (peer.current_endpoint_port || 0)
+            (peer["current-endpoint-port"] || 0)
         );
 
     }
 
-    return peer.endpoint_address || "";
+    return peer["endpoint-address"] || "";
 
 },
 
 handshake(peer) {
 
     const raw =
-        peer.last_handshake || "";
+        peer["last-handshake"] || "";
 
     if (!raw || raw === "never")
         return safeT("wg.never");
