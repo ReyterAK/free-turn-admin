@@ -1225,6 +1225,23 @@ async saveConfig() {
     const passValue =
         this.inputValue("wg-pass");
 
+    const dnsValue =
+        this.inputValue("wg-dns").trim();
+
+    if (
+        !/^(\d{1,3}\.){3}\d{1,3}$/.test(dnsValue) &&
+        !dnsValue.includes(":")
+    ) {
+
+        this.showMsg(
+            safeT("wg.dns_err"),
+            "error"
+        );
+
+        return;
+
+    }
+
     const body = {
 
         url:
@@ -1246,7 +1263,7 @@ async saveConfig() {
             ) || 15,
 
         client_dns:
-            this.inputValue("wg-dns").trim()
+            dnsValue
 
     };
 

@@ -752,13 +752,14 @@ func (r *Router) wireguardSaveConfig(w http.ResponseWriter, req *http.Request) {
 			body.Pass = cur.Pass
 		}
 	}
-	// Пустой DNS = сохранить прежний (или дефолт).
-	if body.ClientDNS == "" {
-		if cur, err := LoadRouterOSConfig(); err == nil && cur.ClientDNS != "" {
-			body.ClientDNS = cur.ClientDNS
-		} else {
-			body.ClientDNS = defaultClientDNS
-		}
+	// DNS обязателен и должен быть IP-адресом.
+	body.ClientDNS = strings.TrimSpace(body.ClientDNS)
+	if net.ParseIP(body.ClientDNS) == nil {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "invalid_dns",
+		})
+		return
 	}
 	if err := SaveRouterOSConfig(body); err != nil {
 		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{

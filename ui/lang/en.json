@@ -337,5 +337,6 @@
 "wg.col.client": "Client",
 "wg.copy": "Copy",
 "wg.save_file": "Save to file",
-"wg.dns": "Client DNS"
+"wg.dns": "Client DNS",
+"wg.dns_err": "Client DNS must be an IP address (e.g. 1.1.1.1) and cannot be empty."
 }

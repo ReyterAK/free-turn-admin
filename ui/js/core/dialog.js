@@ -984,27 +984,42 @@ saveButton.addEventListener(
 
     a.download = name;
 
+    a.rel = "noopener";
+
     document.body.appendChild(
         a
     );
 
-    a.click();
-
-    document.body.removeChild(
-        a
-    );
-
-    // Firefox отменяет ещё не начавшееся скачивание при
-    // мгновенном revoke — откладываем на секунду.
+    // Firefox: отложенный клик (нужен отдельный таск) и
+    // долгий revoke — скачивание не должно успеть отмениться.
     setTimeout(
         () => {
 
-            URL.revokeObjectURL(
-                url
+            a.click();
+
+            setTimeout(
+                () => {
+
+                    if (
+                        a.parentNode
+                    ) {
+
+                        a.parentNode.removeChild(
+                            a
+                        );
+
+                    }
+
+                    URL.revokeObjectURL(
+                        url
+                    );
+
+                },
+                5000
             );
 
         },
-        1000
+        0
     );
 
 }
