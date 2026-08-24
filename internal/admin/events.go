@@ -1,7 +1,7 @@
 //
 // events.go
 // FreeTurn Admin
-// Release 1.0.0 
+// Release 1.0.0
 //
 // In-app event journal (/config/events.json),
 // capped at 500 entries (same schema as before).

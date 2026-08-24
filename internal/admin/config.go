@@ -1,7 +1,7 @@
 //
 // config.go
 // FreeTurn Admin
-// Release 1.0.0 
+// Release 1.0.0
 //
 // /config file storage (same paths and formats
 // as the previous Python backend).
@@ -29,6 +29,7 @@ var (
 	LogFile        = filepath.Join(ConfigDir, "free-turn-proxy.log")
 	ProxyBin       = filepath.Join(ConfigDir, "bin", "free-turn-server")
 	SessionKeyFile = filepath.Join(ConfigDir, "session.key")
+	RouterOSFile   = filepath.Join(ConfigDir, "routeros.json")
 )
 
 func envOr(name, def string) string {
@@ -52,6 +53,16 @@ func readJSON(path string, def any) any {
 		return def
 	}
 	return out
+}
+
+// readJSONFile decodes a JSON file into v and returns the read
+// error (missing file, parse errors are NOT swallowed).
+func readJSONFile(path string, v any) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, v)
 }
 
 // writeFileAtomic writes data to path atomically:

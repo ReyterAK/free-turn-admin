@@ -1,7 +1,7 @@
 //
 // update.go
 // FreeTurn Admin
-// Release 1.0.0 
+// Release 1.0.0
 //
 // Server self-update from GitHub releases.
 //
@@ -85,15 +85,15 @@ func GetLatestServerRelease() map[string]any {
 	}
 
 	var release struct {
-		TagName    string `json:"tag_name"`
-		Name       string `json:"name"`
-		Published  string `json:"published_at"`
-		Body       string `json:"body"`
-		Assets     []struct {
-			Name           string `json:"name"`
-			DownloadURL    string `json:"browser_download_url"`
-			Size           int64  `json:"size"`
-			Digest         string `json:"digest"`
+		TagName   string `json:"tag_name"`
+		Name      string `json:"name"`
+		Published string `json:"published_at"`
+		Body      string `json:"body"`
+		Assets    []struct {
+			Name        string `json:"name"`
+			DownloadURL string `json:"browser_download_url"`
+			Size        int64  `json:"size"`
+			Digest      string `json:"digest"`
 		} `json:"assets"`
 	}
 	if err := json.Unmarshal(body, &release); err != nil {

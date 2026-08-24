@@ -96,6 +96,13 @@ const App = {
             await StatusModule.init();
         
         }
+        
+        
+        if (window.WireGuardModule) {
+        
+            await WireGuardModule.init();
+        
+        }
 
         if (window.AdminModule) {
 

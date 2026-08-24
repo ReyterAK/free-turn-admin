@@ -1,7 +1,7 @@
 //
 // proxy.go
 // FreeTurn Admin
-// Release 1.0.0 
+// Release 1.0.0
 //
 // free-turn-server process management and
 // server log handling (size-based rotation).

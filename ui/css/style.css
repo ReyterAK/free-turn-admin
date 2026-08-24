@@ -3133,3 +3133,13 @@ h3,
 #dialog-modal .hidden {
     display: none !important;
 }
+/* WireGuard tab */
+.wg-conn { margin-bottom: 16px; }
+.wg-row { margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.wg-row label { min-width: 220px; }
+.wg-row input { flex: 1; max-width: 420px; }
+.wg-hint { color: #888; margin: 8px 0 16px; }
+.wg-error { color: #c0392b; margin-left: 12px; }
+.wg-ok { color: #27ae60; margin-left: 12px; }
+.wg-online { color: #27ae60; font-weight: bold; }
+.wg-offline { color: #c0392b; }

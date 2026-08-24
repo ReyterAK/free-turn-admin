@@ -1,7 +1,7 @@
 //
 // handlers.go
 // FreeTurn Admin
-// Release 1.0.0 
+// Release 1.0.0
 //
 // REST API handlers (contract-compatible with
 // the previous Flask backend) and static UI
@@ -182,6 +182,12 @@ func (r *Router) api(w http.ResponseWriter, req *http.Request) {
 		r.requireAuth(r.uriGet)(w, req)
 	case method == "POST" && path == "/api/uri-settings":
 		r.requireAuth(r.uriSave)(w, req)
+
+	// wireguard (RouterOS REST)
+	case method == "GET" && path == "/api/wireguard":
+		r.requireAuth(r.wireguardStatus)(w, req)
+	case method == "POST" && path == "/api/wireguard/config":
+		r.requireAuth(r.wireguardSaveConfig)(w, req)
 
 	// system actions
 	case method == "POST" && path == "/api/system/update/download":

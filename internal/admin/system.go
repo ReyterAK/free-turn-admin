@@ -1,7 +1,7 @@
 //
 // system.go
 // FreeTurn Admin
-// Release 1.0.0 
+// Release 1.0.0
 //
 // Status, clients and configuration access.
 //
@@ -296,10 +296,10 @@ const backendProbeTimeout = 2 * time.Second
 // other UDP services simply ignore it.
 func stunBindingRequest() []byte {
 	pkt := make([]byte, 20)
-	binary.BigEndian.PutUint16(pkt[0:2], 0x0001) // binding request
-	binary.BigEndian.PutUint16(pkt[2:4], 0x0000) // message length
+	binary.BigEndian.PutUint16(pkt[0:2], 0x0001)     // binding request
+	binary.BigEndian.PutUint16(pkt[2:4], 0x0000)     // message length
 	binary.BigEndian.PutUint32(pkt[4:8], 0x2112A442) // magic cookie
-	_, _ = rand.Read(pkt[8:20])                   // transaction id
+	_, _ = rand.Read(pkt[8:20])                      // transaction id
 	return pkt
 }
 

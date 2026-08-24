@@ -100,6 +100,16 @@
 
         </button>
 
+
+        <button
+            type="button"
+            onclick="showTab('wireguard')"
+            data-i18n="tabs.wireguard">
+
+            WireGuard
+
+        </button>
+
     </div>
 
 
@@ -227,6 +237,130 @@
             class="tab hidden">
 
             <div id="connection-form"></div>
+
+        </div>
+
+
+        <!-- =========================
+             WIREGUARD TAB
+        ========================== -->
+
+        <div
+            id="tab-wireguard"
+            class="tab hidden">
+
+            <h3 data-i18n="wg.title">
+                WireGuard (RouterOS)
+            </h3>
+
+            <div class="wg-conn">
+
+                <div class="wg-row">
+                    <label data-i18n="wg.url">
+                        URL RouterOS REST
+                    </label>
+                    <input
+                        id="wg-url"
+                        type="text"
+                        placeholder="http://10.10.20.1/rest">
+                </div>
+
+                <div class="wg-row">
+                    <label data-i18n="wg.user">
+                        Пользователь
+                    </label>
+                    <input
+                        id="wg-user"
+                        type="text">
+                </div>
+
+                <div class="wg-row">
+                    <label data-i18n="wg.pass">
+                        Пароль
+                    </label>
+                    <input
+                        id="wg-pass"
+                        type="password">
+                </div>
+
+                <div class="wg-row">
+                    <label data-i18n="wg.poll">
+                        Интервал обновления (сек)
+                    </label>
+                    <input
+                        id="wg-poll"
+                        type="number"
+                        min="5"
+                        max="600"
+                        value="15">
+                </div>
+
+                <button
+                    type="button"
+                    id="wg-save"
+                    data-i18n="wg.save">
+
+                    Сохранить подключение
+
+                </button>
+
+                <button
+                    type="button"
+                    id="wg-refresh"
+                    data-i18n="actions.refresh">
+
+                    Обновить
+
+                </button>
+
+                <span id="wg-msg"></span>
+
+            </div>
+
+            <div
+                id="wg-not-configured"
+                class="wg-hint"
+                style="display: none;">
+
+                Подключение к RouterOS не настроено.
+
+            </div>
+
+            <h4 data-i18n="wg.interfaces">
+                Интерфейсы WireGuard
+            </h4>
+
+            <table class="clients-table">
+                <thead>
+                    <tr>
+                        <th data-i18n="wg.col.name">Имя</th>
+                        <th data-i18n="wg.col.listen_port">Порт</th>
+                        <th data-i18n="wg.col.public_key">Публичный ключ</th>
+                        <th data-i18n="wg.col.status">Статус</th>
+                    </tr>
+                </thead>
+                <tbody id="wg-interfaces-body"></tbody>
+            </table>
+
+            <h4 data-i18n="wg.peers">
+                Пиры WireGuard
+            </h4>
+
+            <table class="clients-table">
+                <thead>
+                    <tr>
+                        <th data-i18n="wg.col.name">Имя</th>
+                        <th data-i18n="wg.col.interface">Интерфейс</th>
+                        <th data-i18n="wg.col.allowed">Allowed address</th>
+                        <th data-i18n="wg.col.endpoint">Endpoint</th>
+                        <th data-i18n="wg.col.handshake">Последний handshake</th>
+                        <th data-i18n="wg.col.rx">RX</th>
+                        <th data-i18n="wg.col.tx">TX</th>
+                        <th data-i18n="wg.col.status">Статус</th>
+                    </tr>
+                </thead>
+                <tbody id="wg-peers-body"></tbody>
+            </table>
 
         </div>
 
@@ -880,6 +1014,7 @@
 <script src="/js/modules/uriGenerationSettingsModule.js"></script>
 
 <script src="/js/modules/status.js"></script>
+<script src="/js/modules/wireguard.js"></script>
 
 <script src="/js/modules/admin.js"></script>
 
