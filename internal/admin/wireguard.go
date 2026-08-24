@@ -131,7 +131,7 @@ func (r *Router) wireguardStatus(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// interface name -> IPs (без /prefix)
+	// interface name -> addresses (с маской, "10.10.30.1/24")
 	ipsByIface := map[string][]string{}
 	for _, a := range addresses {
 		name := a.Interface
@@ -141,7 +141,7 @@ func (r *Router) wireguardStatus(w http.ResponseWriter, req *http.Request) {
 		if name == "" {
 			continue
 		}
-		ipsByIface[name] = append(ipsByIface[name], hostOf(a.Address))
+		ipsByIface[name] = append(ipsByIface[name], a.Address)
 	}
 
 	// Матч: IP из Backend против IP WG-интерфейсов.
@@ -150,7 +150,7 @@ func (r *Router) wireguardStatus(w http.ResponseWriter, req *http.Request) {
 		var matched *routeros.Interface
 		for i := range interfaces {
 			for _, ip := range ipsByIface[interfaces[i].Name] {
-				if ip == backendHost {
+				if hostOf(ip) == backendHost {
 					matched = &interfaces[i]
 					break
 				}
@@ -178,14 +178,37 @@ func (r *Router) wireguardStatus(w http.ResponseWriter, req *http.Request) {
 				},
 			}
 
-			// Только пиры найденного интерфейса.
+			// Только пиры найденного интерфейса + привязка к паре
+			// ключей из wg.json (по публичному ключу).
+			store, _ := LoadWGStore()
 			var filtered []routeros.Peer
+			used := map[string]bool{}
 			for i := range peers {
 				if peers[i].Interface == matched.Name {
 					peers[i].FillDerived(onlineAfter)
+					if kp := store.FindByPublicKey(peers[i].PublicKey); kp != nil {
+						peers[i].HasKeypair = true
+						peers[i].KeypairClientID = kp.ClientID
+						used[ipOf(peers[i].AllowedAddr)] = true
+					}
 					filtered = append(filtered, peers[i])
 				}
 			}
+
+			// Свободный адрес для нового пира (пул подсети интерфейса).
+			if len(ipsByIface[matched.Name]) > 0 {
+				subnet := ipsByIface[matched.Name][0]
+				used[hostOf(subnet)] = true // IP самого интерфейса
+				for i := range store.Keypairs {
+					if store.Keypairs[i].WGInterface == matched.Name {
+						used[ipOf(store.Keypairs[i].AllowedAddr)] = true
+					}
+				}
+				if free := NextFreeAddress(subnet, used); free != "" {
+					resp["next_free_address"] = free
+				}
+			}
+
 			resp["peers"] = filtered
 		}
 	}
@@ -196,10 +219,10 @@ func (r *Router) wireguardStatus(w http.ResponseWriter, req *http.Request) {
 
 // createInterfaceRequest is the payload of POST /api/wireguard/interface.
 type createInterfaceRequest struct {
-	Name      string `json:"name"`
-	Comment   string `json:"comment"`
-	ListenPort int   `json:"listen_port"`
-	Address   string `json:"address"`
+	Name       string `json:"name"`
+	Comment    string `json:"comment"`
+	ListenPort int    `json:"listen_port"`
+	Address    string `json:"address"`
 }
 
 // maxIfaceName — верхняя граница длины имени интерфейса
@@ -433,6 +456,256 @@ func (r *Router) wireguardDeleteInterface(w http.ResponseWriter, req *http.Reque
 	writeJSON(w, map[string]any{"status": "ok"})
 }
 
+// createPeerRequest is the payload of POST /api/wireguard/peer.
+type createPeerRequest struct {
+	InterfaceName string `json:"interface_name"`
+	Comment       string `json:"comment"`
+	AllowedAddr   string `json:"allowed_address"`
+	ClientID      string `json:"client_id"`
+}
+
+// wireguardCreatePeer generates a client keypair, stores it in
+// wg.json and adds the peer (public key + allowed address) to the
+// router. Requires the "write" policy.
+func (r *Router) wireguardCreatePeer(w http.ResponseWriter, req *http.Request) {
+	cfg, err := LoadRouterOSConfig()
+	if err != nil || cfg.URL == "" {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "not_configured",
+		})
+		return
+	}
+
+	var body createPeerRequest
+	if req.Body != nil {
+		_ = json.NewDecoder(req.Body).Decode(&body)
+	}
+	body.InterfaceName = strings.TrimSpace(body.InterfaceName)
+	body.Comment = strings.TrimSpace(body.Comment)
+	body.AllowedAddr = strings.TrimSpace(body.AllowedAddr)
+
+	if body.InterfaceName == "" {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "invalid_interface",
+		})
+		return
+	}
+
+	client := routeros.New(cfg.URL, cfg.User, cfg.Pass, 6*time.Second)
+
+	// Подсеть интерфейса + занятые адреса.
+	ifaces, err := client.ListInterfaces()
+	if err != nil {
+		writeJSONStatus(w, http.StatusBadGateway, map[string]any{
+			"status": "error",
+			"error":  classifyRouterOSError(err),
+		})
+		return
+	}
+	var ifaceSubnet string
+	found := false
+	for i := range ifaces {
+		if ifaces[i].Name == body.InterfaceName {
+			found = true
+			break
+		}
+	}
+	if !found {
+		writeJSONStatus(w, http.StatusNotFound, map[string]any{
+			"status": "error",
+			"error":  "not_found",
+		})
+		return
+	}
+	addrs, err := client.ListAddresses()
+	if err != nil {
+		writeJSONStatus(w, http.StatusBadGateway, map[string]any{
+			"status": "error",
+			"error":  classifyRouterOSError(err),
+		})
+		return
+	}
+	used := map[string]bool{}
+	for _, a := range addrs {
+		an := a.Interface
+		if an == "" {
+			an = a.ActualInterface
+		}
+		if an == body.InterfaceName {
+			if ifaceSubnet == "" {
+				ifaceSubnet = a.Address
+			}
+			used[ipOf(a.Address)] = true
+		}
+	}
+	if ifaceSubnet == "" {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "no_address_on_interface",
+		})
+		return
+	}
+
+	// Пул: занятые пирами + нашими парами.
+	if peers, err := client.ListPeers(); err == nil {
+		for i := range peers {
+			if peers[i].Interface == body.InterfaceName {
+				used[ipOf(peers[i].AllowedAddr)] = true
+			}
+		}
+	}
+	store, _ := LoadWGStore()
+	for i := range store.Keypairs {
+		if store.Keypairs[i].WGInterface == body.InterfaceName {
+			used[ipOf(store.Keypairs[i].AllowedAddr)] = true
+		}
+	}
+
+	// Адрес: указан или из пула.
+	if body.AllowedAddr == "" {
+		body.AllowedAddr = NextFreeAddress(ifaceSubnet, used)
+		if body.AllowedAddr == "" {
+			writeJSONStatus(w, http.StatusConflict, map[string]any{
+				"status": "error",
+				"error":  "pool_exhausted",
+			})
+			return
+		}
+	} else if !addrInSubnet(body.AllowedAddr, ifaceSubnet) {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "address_out_of_subnet",
+		})
+		return
+	}
+
+	// Клиентская привязка: 1:1.
+	if body.ClientID != "" {
+		if kp := store.FindByClient(body.ClientID); kp != nil {
+			writeJSONStatus(w, http.StatusConflict, map[string]any{
+				"status": "error",
+				"error":  "client_already_bound",
+			})
+			return
+		}
+	}
+
+	// Пара ключей + пир на роутере.
+	kp, err := store.GenerateKeypair(body.InterfaceName, body.AllowedAddr, body.Comment, body.ClientID)
+	if err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+	if err := client.AddPeer(body.InterfaceName, kp.PublicKey, body.AllowedAddr, body.Comment); err != nil {
+		store.Remove(kp.PublicKey) // rollback
+		writeJSONStatus(w, http.StatusBadGateway, map[string]any{
+			"status": "error",
+			"error":  classifyRouterOSError(err),
+		})
+		return
+	}
+	if err := store.Save(); err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	LogEvent("wireguard", "PEER_CREATED", "WG peer "+kp.PublicKey[:12]+" on "+body.InterfaceName)
+	writeJSON(w, map[string]any{
+		"status":          "ok",
+		"public_key":      kp.PublicKey,
+		"private_key":     kp.PrivateKey,
+		"allowed_address": kp.AllowedAddr,
+		"config": buildClientConfig(
+			kp.PrivateKey,
+			kp.AllowedAddr,
+			serverPublicKeyFor(client, body.InterfaceName),
+			backendEndpoint(),
+		),
+	})
+}
+
+// serverPublicKeyFor returns the public key of a WG interface.
+func serverPublicKeyFor(client *routeros.Client, ifaceName string) string {
+	ifaces, err := client.ListInterfaces()
+	if err != nil {
+		return ""
+	}
+	for i := range ifaces {
+		if ifaces[i].Name == ifaceName {
+			return ifaces[i].PublicKey
+		}
+	}
+	return ""
+}
+
+// backendEndpoint returns "host:port" of the Backend server
+// settings ("" when not configured).
+func backendEndpoint() string {
+	h, p, ok := backendHostPort()
+	if !ok {
+		return ""
+	}
+	return h + ":" + strconv.Itoa(p)
+}
+
+// wireguardPeerConfig returns the client WG config for a
+// panel-managed peer (by public key).
+func (r *Router) wireguardPeerConfig(w http.ResponseWriter, req *http.Request) {
+	pub := strings.TrimSpace(req.URL.Query().Get("public_key"))
+	if pub == "" {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "public_key_required",
+		})
+		return
+	}
+	store, err := LoadWGStore()
+	if err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+	kp := store.FindByPublicKey(pub)
+	if kp == nil {
+		writeJSONStatus(w, http.StatusNotFound, map[string]any{
+			"status": "error",
+			"error":  "not_found",
+		})
+		return
+	}
+
+	cfg, err := LoadRouterOSConfig()
+	if err != nil || cfg.URL == "" {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "not_configured",
+		})
+		return
+	}
+	client := routeros.New(cfg.URL, cfg.User, cfg.Pass, 6*time.Second)
+
+	writeJSON(w, map[string]any{
+		"status": "ok",
+		"name":   kp.WGInterface + "-" + kp.Comment,
+		"config": buildClientConfig(
+			kp.PrivateKey,
+			kp.AllowedAddr,
+			serverPublicKeyFor(client, kp.WGInterface),
+			backendEndpoint(),
+		),
+	})
+}
+
 // wireguardSaveConfig stores the RouterOS connection settings.
 func (r *Router) wireguardSaveConfig(w http.ResponseWriter, req *http.Request) {
 	var body RouterOSConfig
@@ -464,10 +737,11 @@ func (r *Router) wireguardSaveConfig(w http.ResponseWriter, req *http.Request) {
 }
 
 // classifyRouterOSError разделяет ошибку соединения с RouterOS:
-//   "auth"       — авторизация не прошла (неверные/пустые креды),
-//   "permission" — прав пользователя недостаточно (нет политик
-//                  api/read или RBAC не даёт доступ к меню),
-//   "unreachable" — URL недоступен или иная сетевая проблема.
+//
+//	"auth"       — авторизация не прошла (неверные/пустые креды),
+//	"permission" — прав пользователя недостаточно (нет политик
+//	               api/read или RBAC не даёт доступ к меню),
+//	"unreachable" — URL недоступен или иная сетевая проблема.
 func classifyRouterOSError(err error) map[string]string {
 	msg := err.Error()
 	low := strings.ToLower(msg)

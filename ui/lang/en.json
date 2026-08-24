@@ -319,5 +319,19 @@
 "wg.delete_confirm_title": "Delete interface",
 "wg.delete_confirm_text": "Delete interface %s?",
 "wg.delete_confirm2_text": "Delete interface %s together with all its peers and addresses? This action cannot be undone.",
-"wg.delete_ok": "Interface deleted"
+"wg.delete_ok": "Interface deleted",
+"wg.create_peer": "Create peer",
+"wg.peer_comment": "Comment",
+"wg.peer_address": "Allowed address",
+"wg.peer_client": "Client (optional)",
+"wg.peer_no_client": "— no binding —",
+"wg.peer_err_address": "Invalid address (e.g. 10.10.20.2/32).",
+"wg.peer_err_pool": "No free addresses left in the interface subnet. Change the network mask on the router.",
+"wg.peer_err_out": "Address is outside the interface subnet.",
+"wg.peer_err_bound": "This client is already bound to another peer.",
+"wg.peer_created_title": "Peer created",
+"wg.peer_created_text": "Peer created, keypair stored. Client config below (also available via the WG.config button):",
+"wg.config_title": "WG.config",
+"wg.col.actions": "Actions",
+"wg.config_btn": "WG.config"
 }

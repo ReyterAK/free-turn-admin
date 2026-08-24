@@ -3166,3 +3166,5 @@ h3,
 .wg-create-form { border: 1px solid #ccc; border-radius: 4px; padding: 12px; margin: 10px 0; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
 .wg-create-actions { display: flex; align-items: center; gap: 8px; }
 #wg-create-msg { margin-left: 8px; }
+
+.wg-peer-config-btn { font-size: 12px; padding: 2px 8px; cursor: pointer; }

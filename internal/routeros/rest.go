@@ -85,9 +85,12 @@ type Peer struct {
 	// Derived fields, filled by the panel after fetch:
 	// LastHandshakeSec is the parsed handshake age in seconds
 	// (-1 when never/unknown), Online — handshake within the
-	// configured threshold.
-	LastHandshakeSec int64 `json:"last_handshake_sec"`
-	Online           bool  `json:"online"`
+	// configured threshold. HasKeypair/KeypairClientID — binding
+	// info from the panel's wg.json (matched by public key).
+	LastHandshakeSec int64  `json:"last_handshake_sec"`
+	Online           bool   `json:"online"`
+	HasKeypair       bool   `json:"has_keypair"`
+	KeypairClientID  string `json:"keypair_client_id,omitempty"`
 }
 
 // Address is a RouterOS IP address entry (/ip/address).
@@ -237,6 +240,19 @@ func (c *Client) DeleteInterface(id string) error {
 // DeletePeer removes a WireGuard peer by .id.
 func (c *Client) DeletePeer(id string) error {
 	return c.del("/interface/wireguard/peers/" + id)
+}
+
+// AddPeer creates a WireGuard peer (public key + allowed address).
+func (c *Client) AddPeer(iface, publicKey, allowedAddress, comment string) error {
+	payload := map[string]any{
+		"interface":       iface,
+		"public-key":      publicKey,
+		"allowed-address": allowedAddress,
+	}
+	if comment != "" {
+		payload["comment"] = comment
+	}
+	return c.post("/interface/wireguard/peers/add", payload)
 }
 
 // AddAddress assigns an address to an interface ("10.10.30.1/24").

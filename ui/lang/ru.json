@@ -319,5 +319,19 @@
 "wg.delete_confirm_title": "Удаление интерфейса",
 "wg.delete_confirm_text": "Удалить интерфейс %s?",
 "wg.delete_confirm2_text": "Удалить интерфейс %s вместе со всеми его пирами и адресами? Действие необратимо.",
-"wg.delete_ok": "Интерфейс удалён"
+"wg.delete_ok": "Интерфейс удалён",
+"wg.create_peer": "Создать пира",
+"wg.peer_comment": "Комментарий",
+"wg.peer_address": "Allowed address",
+"wg.peer_client": "Клиент (опционально)",
+"wg.peer_no_client": "— без привязки —",
+"wg.peer_err_address": "Некорректный адрес (пример: 10.10.20.2/32).",
+"wg.peer_err_pool": "Свободных адресов в подсети интерфейса не осталось. Измените маску сети на роутере.",
+"wg.peer_err_out": "Адрес вне подсети интерфейса.",
+"wg.peer_err_bound": "Этот клиент уже привязан к другому пиру.",
+"wg.peer_created_title": "Пир создан",
+"wg.peer_created_text": "Пир создан, пара ключей сохранена. Конфиг клиента ниже (доступен также кнопкой WG.config):",
+"wg.config_title": "WG.config",
+"wg.col.actions": "Действия",
+"wg.config_btn": "WG.config"
 }

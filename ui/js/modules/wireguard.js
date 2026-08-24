@@ -154,6 +154,63 @@ bindEvents() {
 
     }
 
+
+    const peerToggle =
+        document.getElementById(
+            "wg-create-peer"
+        );
+
+    if (peerToggle) {
+
+        peerToggle.addEventListener(
+            "click",
+            () => {
+
+                this.showPeerForm();
+
+            }
+        );
+
+    }
+
+
+    const doPeerCreate =
+        document.getElementById(
+            "wg-peer-create"
+        );
+
+    if (doPeerCreate) {
+
+        doPeerCreate.addEventListener(
+            "click",
+            () => {
+
+                this.createPeer();
+
+            }
+        );
+
+    }
+
+
+    const cancelPeer =
+        document.getElementById(
+            "wg-peer-cancel"
+        );
+
+    if (cancelPeer) {
+
+        cancelPeer.addEventListener(
+            "click",
+            () => {
+
+                this.hidePeerForm();
+
+            }
+        );
+
+    }
+
 },
 
 //
@@ -466,6 +523,404 @@ showCreateError(text) {
     el.textContent = text;
 
     el.className = "wg-error";
+
+},
+
+//
+// create peer
+//
+
+async showPeerForm() {
+
+    const form =
+        document.getElementById(
+            "wg-peer-form"
+        );
+
+    if (!form)
+        return;
+
+    const visible =
+        form.style.display !== "none";
+
+    form.style.display =
+        visible ? "none" : "block";
+
+    this.clearPeerMsg();
+
+    if (visible)
+        return;
+
+    // подсказка адреса из пула
+    const addr =
+        document.getElementById(
+            "wg-peer-address"
+        );
+
+    if (
+        addr &&
+        this.lastData &&
+        this.lastData.next_free_address
+    ) {
+
+        addr.value =
+            this.lastData.next_free_address;
+
+    }
+
+    // список клиентов для привязки
+    await this.loadClients();
+
+},
+
+hidePeerForm() {
+
+    const form =
+        document.getElementById(
+            "wg-peer-form"
+        );
+
+    if (form)
+        form.style.display = "none";
+
+    this.clearPeerMsg();
+
+},
+
+clearPeerMsg() {
+
+    const el =
+        document.getElementById(
+            "wg-peer-msg"
+        );
+
+    if (el)
+        el.textContent = "";
+
+},
+
+showPeerError(text) {
+
+    const el =
+        document.getElementById(
+            "wg-peer-msg"
+        );
+
+    if (!el)
+        return;
+
+    el.textContent = text;
+
+    el.className = "wg-error";
+
+},
+
+async loadClients() {
+
+    const select =
+        document.getElementById(
+            "wg-peer-client"
+        );
+
+    if (!select)
+        return;
+
+    try {
+
+        const resp =
+            await fetch(
+                "/api/clients/list",
+                {
+                    credentials: "same-origin"
+                }
+            );
+
+        const data =
+            await resp.json();
+
+        const clients =
+            Array.isArray(data.clients)
+                ? data.clients
+                : [];
+
+        select.innerHTML = "";
+
+        const none =
+            document.createElement(
+                "option"
+            );
+
+        none.value = "";
+
+        none.textContent =
+            safeT("wg.peer_no_client");
+
+        select.appendChild(
+            none
+        );
+
+        clients.forEach(
+            c => {
+
+                const opt =
+                    document.createElement(
+                        "option"
+                    );
+
+                opt.value =
+                    c.id || "";
+
+                opt.textContent =
+                    (c.comment || c.id) +
+                    (c.comment ? " (" + c.id + ")" : "");
+
+                select.appendChild(
+                    opt
+                );
+
+            }
+        );
+
+    }
+    catch (error) {
+
+        console.error(
+            "[WireGuardModule] load clients failed",
+            error
+        );
+
+    }
+
+},
+
+async createPeer() {
+
+    this.clearPeerMsg();
+
+    const iface =
+        this.currentIfaceName;
+
+    const comment =
+        this.inputValue(
+            "wg-peer-comment"
+        ).trim();
+
+    const address =
+        this.inputValue(
+            "wg-peer-address"
+        ).trim();
+
+    const clientID =
+        this.inputValue(
+            "wg-peer-client"
+        ).trim();
+
+    if (!iface) {
+
+        this.showPeerError(
+            safeT("wg.fetch_error")
+        );
+
+        return;
+
+    }
+
+    if (
+        address &&
+        !/^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/.test(address)
+    ) {
+
+        this.showPeerError(
+            safeT("wg.peer_err_address")
+        );
+
+        return;
+
+    }
+
+    this.showPeerError(
+        safeT("wg.loading")
+    );
+
+    try {
+
+        const resp =
+            await fetch(
+                "/api/wireguard/peer",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers:
+                    {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(
+                        {
+                            interface_name: iface,
+                            comment: comment,
+                            allowed_address: address,
+                            client_id: clientID
+                        }
+                    )
+                }
+            );
+
+        const data =
+            await resp.json();
+
+        if (data.status === "ok") {
+
+            this.hidePeerForm();
+
+            if (window.Dialog) {
+
+                Dialog.alert(
+                    safeT("wg.peer_created_title"),
+                    safeT("wg.peer_created_text") +
+                    "\n\n" +
+                    (data.config || "")
+                );
+
+            }
+
+            await this.refresh();
+
+            return;
+
+        }
+
+        this.mapPeerError(data);
+
+    }
+    catch (error) {
+
+        console.error(
+            "[WireGuardModule] create peer failed",
+            error
+        );
+
+        this.showPeerError(
+            String(error)
+        );
+
+    }
+
+},
+
+mapPeerError(data) {
+
+    if (
+        data.error &&
+        typeof data.error === "object"
+    ) {
+
+        if (data.error.kind === "permission") {
+
+            this.showPeerError(
+                safeT("wg.iface_err_write")
+            );
+
+            return;
+
+        }
+
+        this.showPeerError(
+            safeT("wg.err_unreachable") +
+            " " +
+            (data.error.detail || "")
+        );
+
+        return;
+
+    }
+
+    switch (data.error) {
+
+        case "pool_exhausted":
+            this.showPeerError(
+                safeT("wg.peer_err_pool")
+            );
+            return;
+
+        case "address_out_of_subnet":
+            this.showPeerError(
+                safeT("wg.peer_err_out")
+            );
+            return;
+
+        case "client_already_bound":
+            this.showPeerError(
+                safeT("wg.peer_err_bound")
+            );
+            return;
+
+        default:
+            this.showPeerError(
+                data.error ||
+                safeT("wg.save_error")
+            );
+
+    }
+
+},
+
+//
+// WG.config
+//
+
+async showPeerConfig(publicKey, name) {
+
+    try {
+
+        const resp =
+            await fetch(
+                "/api/wireguard/peer/config?public_key=" +
+                encodeURIComponent(publicKey),
+                {
+                    credentials: "same-origin"
+                }
+            );
+
+        const data =
+            await resp.json();
+
+        if (data.status !== "ok") {
+
+            this.showMsg(
+                data.error ||
+                safeT("wg.save_error"),
+                "error"
+            );
+
+            return;
+
+        }
+
+        if (window.Dialog) {
+
+            Dialog.alert(
+                safeT("wg.config_title") +
+                " — " +
+                name,
+                data.config || ""
+            );
+
+        }
+
+    }
+    catch (error) {
+
+        console.error(
+            "[WireGuardModule] config failed",
+            error
+        );
+
+        this.showMsg(
+            String(error),
+            "error"
+        );
+
+    }
 
 },
 
@@ -862,6 +1317,8 @@ render(data) {
             }
             : null;
 
+    this.lastData = data;
+
     const hint =
         document.getElementById(
             "wg-not-configured"
@@ -1182,7 +1639,7 @@ renderPeers(list, err) {
     if (err) {
 
         body.innerHTML =
-            "<tr><td colspan='8'>" +
+            "<tr><td colspan='9'>" +
             safeT("wg.fetch_error") +
             " " +
             escapeHtml(err) +
@@ -1195,7 +1652,7 @@ renderPeers(list, err) {
     if (!list || !list.length) {
 
         body.innerHTML =
-            "<tr><td colspan='8'>" +
+            "<tr><td colspan='9'>" +
             safeT("wg.no_peers") +
             "</td></tr>";
 
@@ -1256,10 +1713,64 @@ renderPeers(list, err) {
                 this.td(status, online ? "wg-online" : "wg-offline")
             );
 
+            tr.appendChild(
+                this.actionsCell(peer)
+            );
+
             body.appendChild(tr);
 
         }
     );
+
+},
+
+actionsCell(peer) {
+
+    const cell =
+        document.createElement(
+            "td"
+        );
+
+    if (peer.has_keypair !== true) {
+
+        cell.textContent = "";
+
+        return cell;
+
+    }
+
+    const btn =
+        document.createElement(
+            "button"
+        );
+
+    btn.type = "button";
+
+    btn.className = "wg-peer-config-btn";
+
+    btn.textContent =
+        safeT("wg.config_btn");
+
+    const pub =
+        peer["public-key"] || peer[".id"];
+
+    btn.addEventListener(
+        "click",
+        () => {
+
+            this.showPeerConfig(
+                pub,
+                peer.name || pub.slice(0, 12)
+            );
+
+        }
+    );
+
+    cell.appendChild(
+        btn
+    );
+
+    return cell;
 
 },
 
