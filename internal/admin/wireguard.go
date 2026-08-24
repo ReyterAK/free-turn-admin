@@ -16,6 +16,7 @@ package admin
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -193,6 +194,128 @@ func (r *Router) wireguardStatus(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, resp)
 }
 
+// createInterfaceRequest is the payload of POST /api/wireguard/interface.
+type createInterfaceRequest struct {
+	Name      string `json:"name"`
+	Comment   string `json:"comment"`
+	ListenPort int   `json:"listen_port"`
+	Address   string `json:"address"`
+}
+
+// wireguardCreateInterface creates a new WireGuard interface on the
+// router (with its address) via the REST API. Requires a RouterOS
+// user with the "write" policy. The listen-port is checked by the
+// panel first: RouterOS itself ALLOWS duplicate ports on several WG
+// interfaces, which would break packet delivery.
+func (r *Router) wireguardCreateInterface(w http.ResponseWriter, req *http.Request) {
+	cfg, err := LoadRouterOSConfig()
+	if err != nil || cfg.URL == "" {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "not_configured",
+		})
+		return
+	}
+
+	var body createInterfaceRequest
+	if req.Body != nil {
+		_ = json.NewDecoder(req.Body).Decode(&body)
+	}
+	body.Name = strings.TrimSpace(body.Name)
+	body.Address = strings.TrimSpace(body.Address)
+
+	if body.Name == "" || strings.ContainsAny(body.Name, " \t") {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "invalid_name",
+		})
+		return
+	}
+	if body.ListenPort < 1 || body.ListenPort > 65535 {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "invalid_port",
+		})
+		return
+	}
+	if _, _, err := net.ParseCIDR(body.Address); err != nil {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "invalid_address",
+		})
+		return
+	}
+
+	client := routeros.New(cfg.URL, cfg.User, cfg.Pass, 6*time.Second)
+
+	// Проверка занятости listen-port (роутер дубли разрешает).
+	existing, err := client.ListInterfaces()
+	if err != nil {
+		writeJSONStatus(w, http.StatusBadGateway, map[string]any{
+			"status": "error",
+			"error":  classifyRouterOSError(err),
+		})
+		return
+	}
+	for _, iface := range existing {
+		if int(iface.ListenPort) == body.ListenPort {
+			writeJSONStatus(w, http.StatusConflict, map[string]any{
+				"status": "error",
+				"error":  "port_in_use",
+				"detail": iface.Name,
+			})
+			return
+		}
+	}
+
+	if err := client.AddInterface(body.Name, body.ListenPort, body.Comment); err != nil {
+		writeJSONStatus(w, http.StatusBadGateway, map[string]any{
+			"status": "error",
+			"error":  classifyRouterOSError(err),
+		})
+		return
+	}
+
+	// Адрес; при неудаче откатываем созданный интерфейс.
+	if err := client.AddAddress(body.Name, body.Address, body.Comment); err != nil {
+		// rollback: найти .id созданного интерфейса и удалить
+		if list, lerr := client.ListInterfaces(); lerr == nil {
+			for _, iface := range list {
+				if iface.Name == body.Name {
+					_ = client.DeleteInterface(iface.ID)
+					break
+				}
+			}
+		}
+		writeJSONStatus(w, http.StatusBadGateway, map[string]any{
+			"status": "error",
+			"error":  classifyRouterOSError(err),
+		})
+		return
+	}
+
+	// Публичный ключ и итоговое состояние.
+	created := map[string]any{
+		"name":        body.Name,
+		"comment":     body.Comment,
+		"listen-port": body.ListenPort,
+		"address":     body.Address,
+	}
+	if list, lerr := client.ListInterfaces(); lerr == nil {
+		for _, iface := range list {
+			if iface.Name == body.Name {
+				created[".id"] = iface.ID
+				created["public-key"] = iface.PublicKey
+				created["running"] = bool(iface.Running)
+				break
+			}
+		}
+	}
+
+	LogEvent("wireguard", "INTERFACE_CREATED", "WireGuard interface "+body.Name+" created")
+	writeJSON(w, map[string]any{"status": "ok", "interface": created})
+}
+
 // wireguardSaveConfig stores the RouterOS connection settings.
 func (r *Router) wireguardSaveConfig(w http.ResponseWriter, req *http.Request) {
 	var body RouterOSConfig
@@ -224,11 +347,10 @@ func (r *Router) wireguardSaveConfig(w http.ResponseWriter, req *http.Request) {
 }
 
 // classifyRouterOSError разделяет ошибку соединения с RouterOS:
-//
-//	"auth"       — авторизация не прошла (неверные/пустые креды),
-//	"permission" — прав пользователя недостаточно (нет политик
-//	               api/read или RBAC не даёт доступ к меню),
-//	"unreachable" — URL недоступен или иная сетевая проблема.
+//   "auth"       — авторизация не прошла (неверные/пустые креды),
+//   "permission" — прав пользователя недостаточно (нет политик
+//                  api/read или RBAC не даёт доступ к меню),
+//   "unreachable" — URL недоступен или иная сетевая проблема.
 func classifyRouterOSError(err error) map[string]string {
 	msg := err.Error()
 	low := strings.ToLower(msg)

@@ -300,5 +300,19 @@
 "wg.create_stub_text": "Функция будет доступна в следующей версии.",
 "wg.port_mismatch": "Порт WireGuard не совпадает с настройками Backend-сервера! Измените настройки порта.",
 "wg.col.ip": "IP-адрес",
-"wg.goto_title": "Перейти к WireGuard"
+"wg.goto_title": "Перейти к WireGuard",
+"wg.create_iface": "Создать интерфейс",
+"wg.iface_name": "Имя интерфейса",
+"wg.iface_comment": "Комментарий",
+"wg.iface_port": "Порт",
+"wg.iface_address": "Адрес (IP/маска)",
+"wg.iface_do_create": "Создать",
+"wg.iface_cancel": "Отмена",
+"wg.iface_err_name": "Укажите имя интерфейса.",
+"wg.iface_err_port": "Укажите порт 1-65535.",
+"wg.iface_err_address": "Некорректный адрес (пример: 10.10.30.1/24).",
+"wg.iface_port_conflict": "Порт %d уже используется интерфейсом %s. Выберите другой порт.",
+"wg.iface_err_write": "Недостаточно прав на запись. Используйте пользователя с политикой write (user-rest-api-rw).",
+"wg.iface_created_title": "Интерфейс создан",
+"wg.iface_created_text": "Интерфейс %s создан на роутере.\nАдрес: %s\nПорт: %s\nПубличный ключ (для клиентских конфигов):\n%s"
 }

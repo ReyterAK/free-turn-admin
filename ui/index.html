@@ -367,7 +367,7 @@
 
                 <button
                     type="button"
-                    onclick="WireGuardModule.createInterfaceStub()"
+                    onclick="WireGuardModule.showCreateForm(true)"
                     data-i18n="wg.iface_create">
 
                     Создать новый WireGuard-интерфейс
@@ -398,17 +398,98 @@
                 <div class="wg-section-head">
 
                     <h4 data-i18n="wg.interfaces">
-                        Интерфейсы WireGuard
+                        Интерфейс WireGuard
                     </h4>
 
-                    <button
-                        type="button"
-                        id="wg-refresh"
-                        data-i18n="actions.refresh">
+                    <div class="wg-section-actions">
 
-                        Обновить
+                        <button
+                            type="button"
+                            id="wg-create-iface"
+                            data-i18n="wg.create_iface">
 
-                    </button>
+                            Создать интерфейс
+
+                        </button>
+
+                        <button
+                            type="button"
+                            id="wg-refresh"
+                            data-i18n="actions.refresh">
+
+                            Обновить
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <div
+                    id="wg-create-form"
+                    class="wg-create-form"
+                    style="display: none;">
+
+                    <div class="wg-field">
+                        <label data-i18n="wg.iface_name">
+                            Имя интерфейса
+                        </label>
+                        <input
+                            id="wg-iface-name"
+                            type="text">
+                    </div>
+
+                    <div class="wg-field">
+                        <label data-i18n="wg.iface_comment">
+                            Комментарий
+                        </label>
+                        <input
+                            id="wg-iface-comment"
+                            type="text">
+                    </div>
+
+                    <div class="wg-field">
+                        <label data-i18n="wg.iface_port">
+                            Порт
+                        </label>
+                        <input
+                            id="wg-iface-port"
+                            type="number"
+                            min="1"
+                            max="65535">
+                    </div>
+
+                    <div class="wg-field">
+                        <label data-i18n="wg.iface_address">
+                            Адрес (IP/маска)
+                        </label>
+                        <input
+                            id="wg-iface-address"
+                            type="text"
+                            placeholder="10.10.30.1/24">
+                    </div>
+
+                    <div class="wg-create-actions">
+                        <button
+                            type="button"
+                            id="wg-iface-create"
+                            data-i18n="wg.iface_do_create">
+
+                            Создать
+
+                        </button>
+
+                        <button
+                            type="button"
+                            id="wg-iface-cancel"
+                            data-i18n="wg.iface_cancel">
+
+                            Отмена
+
+                        </button>
+
+                        <span id="wg-create-msg"></span>
+                    </div>
 
                 </div>
 

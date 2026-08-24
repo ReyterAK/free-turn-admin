@@ -15,6 +15,7 @@
 package routeros
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -137,6 +138,56 @@ func (c *Client) get(path string, out any) error {
 	return json.NewDecoder(resp.Body).Decode(out)
 }
 
+// post sends a JSON POST (RouterOS REST "add" command) and decodes
+// the response ({"ret":"*33"}). Non-2xx surfaces the router error.
+func (c *Client) post(path string, payload map[string]any) error {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("routeros: %w", err)
+	}
+	req, err := http.NewRequest(http.MethodPost, c.baseURL+path, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("routeros: %w", err)
+	}
+	req.SetBasicAuth(c.user, c.pass)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return fmt.Errorf("routeros: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		data, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return fmt.Errorf("routeros: %s -> HTTP %d: %s",
+			path, resp.StatusCode, strings.TrimSpace(string(data)))
+	}
+	return nil
+}
+
+// del sends a DELETE for a concrete item (path ends with .id).
+func (c *Client) del(path string) error {
+	req, err := http.NewRequest(http.MethodDelete, c.baseURL+path, nil)
+	if err != nil {
+		return fmt.Errorf("routeros: %w", err)
+	}
+	req.SetBasicAuth(c.user, c.pass)
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return fmt.Errorf("routeros: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		data, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return fmt.Errorf("routeros: %s -> HTTP %d: %s",
+			path, resp.StatusCode, strings.TrimSpace(string(data)))
+	}
+	return nil
+}
+
 // ListInterfaces returns all WireGuard interfaces.
 func (c *Client) ListInterfaces() ([]Interface, error) {
 	var out []Interface
@@ -163,6 +214,41 @@ func (c *Client) ListAddresses() ([]Address, error) {
 		return nil, err
 	}
 	return out, nil
+}
+
+// AddInterface creates a WireGuard interface. RouterOS generates the
+// keypair automatically. Returns the new item .id.
+func (c *Client) AddInterface(name string, listenPort int, comment string) error {
+	payload := map[string]any{
+		"name":        name,
+		"listen-port": listenPort,
+	}
+	if comment != "" {
+		payload["comment"] = comment
+	}
+	return c.post("/interface/wireguard/add", payload)
+}
+
+// DeleteInterface removes a WireGuard interface by .id.
+func (c *Client) DeleteInterface(id string) error {
+	return c.del("/interface/wireguard/" + id)
+}
+
+// AddAddress assigns an address to an interface ("10.10.30.1/24").
+func (c *Client) AddAddress(iface, address, comment string) error {
+	payload := map[string]any{
+		"address":   address,
+		"interface": iface,
+	}
+	if comment != "" {
+		payload["comment"] = comment
+	}
+	return c.post("/ip/address/add", payload)
+}
+
+// DeleteAddress removes an IP address entry by .id.
+func (c *Client) DeleteAddress(id string) error {
+	return c.del("/ip/address/" + id)
 }
 
 // ParseLastHandshake parses RouterOS relative handshake time

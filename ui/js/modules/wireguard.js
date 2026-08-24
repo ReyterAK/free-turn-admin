@@ -63,6 +63,63 @@ bindEvents() {
 
     }
 
+
+    const createToggle =
+        document.getElementById(
+            "wg-create-iface"
+        );
+
+    if (createToggle) {
+
+        createToggle.addEventListener(
+            "click",
+            () => {
+
+                this.showCreateForm(false);
+
+            }
+        );
+
+    }
+
+
+    const doCreate =
+        document.getElementById(
+            "wg-iface-create"
+        );
+
+    if (doCreate) {
+
+        doCreate.addEventListener(
+            "click",
+            () => {
+
+                this.createInterface();
+
+            }
+        );
+
+    }
+
+
+    const cancelCreate =
+        document.getElementById(
+            "wg-iface-cancel"
+        );
+
+    if (cancelCreate) {
+
+        cancelCreate.addEventListener(
+            "click",
+            () => {
+
+                this.hideCreateForm();
+
+            }
+        );
+
+    }
+
 },
 
 //
@@ -97,27 +154,297 @@ showHelp(kind) {
 },
 
 //
-// create stub (v2)
+// create interface (v2)
 //
 
-async createInterfaceStub() {
+showCreateForm(prefillPort) {
 
-    if (!window.Dialog)
-        return;
-
-    const confirmed =
-        await Dialog.confirm(
-            safeT("wg.iface_create"),
-            safeT("wg.iface_create_text")
+    const form =
+        document.getElementById(
+            "wg-create-form"
         );
 
-    if (!confirmed)
+    if (!form)
         return;
 
-    Dialog.alert(
-        safeT("wg.create_stub_title"),
-        safeT("wg.create_stub_text")
+    const visible =
+        form.style.display !== "none";
+
+    form.style.display =
+        visible ? "none" : "block";
+
+    this.clearCreateMsg();
+
+    if (!visible) {
+
+        if (prefillPort) {
+
+            const port =
+                document.getElementById(
+                    "wg-iface-port"
+                );
+
+            if (port)
+                port.value = "";
+
+        }
+
+        const portInput =
+            document.getElementById(
+                "wg-iface-port"
+            );
+
+        if (portInput && !portInput.value) {
+
+            // подсказка: порт backend, если известен
+            const line =
+                document.getElementById(
+                    "wg-backend-line"
+                );
+
+            if (line && line.dataset.port) {
+
+                portInput.placeholder =
+                    String(line.dataset.port);
+
+            }
+
+        }
+
+    }
+
+},
+
+hideCreateForm() {
+
+    const form =
+        document.getElementById(
+            "wg-create-form"
+        );
+
+    if (form)
+        form.style.display = "none";
+
+    this.clearCreateMsg();
+
+},
+
+clearCreateMsg() {
+
+    const el =
+        document.getElementById(
+            "wg-create-msg"
+        );
+
+    if (el)
+        el.textContent = "";
+
+},
+
+createInterfaceError(err) {
+
+    if (!err)
+        return "";
+
+    switch (err) {
+
+        case "invalid_name":
+            return safeT("wg.iface_err_name");
+
+        case "invalid_port":
+            return safeT("wg.iface_err_port");
+
+        case "invalid_address":
+            return safeT("wg.iface_err_address");
+
+        case "port_in_use":
+            return ""; // деталь с именем интерфейса в errDetail
+
+        default:
+            return "";
+
+    }
+
+},
+
+async createInterface() {
+
+    this.clearCreateMsg();
+
+    const name =
+        this.inputValue("wg-iface-name").trim();
+
+    const comment =
+        this.inputValue("wg-iface-comment").trim();
+
+    const port =
+        parseInt(
+            this.inputValue("wg-iface-port"),
+            10
+        );
+
+    const address =
+        this.inputValue("wg-iface-address").trim();
+
+    if (!name) {
+
+        this.showCreateError(
+            safeT("wg.iface_err_name")
+        );
+
+        return;
+
+    }
+
+    if (!port || port < 1 || port > 65535) {
+
+        this.showCreateError(
+            safeT("wg.iface_err_port")
+        );
+
+        return;
+
+    }
+
+    if (!/^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/.test(address)) {
+
+        this.showCreateError(
+            safeT("wg.iface_err_address")
+        );
+
+        return;
+
+    }
+
+    this.showCreateError(
+        safeT("wg.loading")
     );
+
+    try {
+
+        const resp =
+            await fetch(
+                "/api/wireguard/interface",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers:
+                    {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(
+                        {
+                            name: name,
+                            comment: comment,
+                            listen_port: port,
+                            address: address
+                        }
+                    )
+                }
+            );
+
+        const data =
+            await resp.json();
+
+        if (data.status === "ok") {
+
+            this.hideCreateForm();
+
+            const created =
+                data.interface || {};
+
+            if (window.Dialog) {
+
+                Dialog.alert(
+                    safeT("wg.iface_created_title"),
+                    safeT("wg.iface_created_text")
+                        .replace("%s", created.name || name)
+                        .replace("%s", created.address || address)
+                        .replace("%s", String(created["listen-port"] || port))
+                        .replace("%s", created["public-key"] || "")
+                );
+
+            }
+
+            await this.refresh();
+
+            return;
+
+        }
+
+        // port_in_use: data.detail = имя конфликтующего интерфейса
+        if (data.error === "port_in_use") {
+
+            this.showCreateError(
+                safeT("wg.iface_port_conflict")
+                    .replace("%d", String(port))
+                    .replace("%s", data.detail || "?")
+            );
+
+            return;
+
+        }
+
+        // классифицированная ошибка роутера
+        if (
+            data.error &&
+            typeof data.error === "object"
+        ) {
+
+            if (data.error.kind === "permission") {
+
+                this.showCreateError(
+                    safeT("wg.iface_err_write")
+                );
+
+                return;
+
+            }
+
+            this.showCreateError(
+                safeT("wg.err_unreachable") +
+                " " +
+                (data.error.detail || "")
+            );
+
+            return;
+
+        }
+
+        this.showCreateError(
+            data.error ||
+            safeT("wg.save_error")
+        );
+
+    }
+    catch (error) {
+
+        console.error(
+            "[WireGuardModule] create failed",
+            error
+        );
+
+        this.showCreateError(
+            String(error)
+        );
+
+    }
+
+},
+
+showCreateError(text) {
+
+    const el =
+        document.getElementById(
+            "wg-create-msg"
+        );
+
+    if (!el)
+        return;
+
+    el.textContent = text;
+
+    el.className = "wg-error";
 
 },
 
@@ -496,11 +823,16 @@ renderBackendLine(data) {
             ":" +
             data.backend_port;
 
+        el.dataset.port =
+            String(data.backend_port);
+
         return;
 
     }
 
     el.style.display = "none";
+
+    delete el.dataset.port;
 
 },
 
