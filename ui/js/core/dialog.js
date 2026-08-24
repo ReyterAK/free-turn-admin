@@ -953,6 +953,10 @@ close(
 );
 
 
+}
+
+);
+
 /*
 SAVE handler for the config dialog.
 */
@@ -961,12 +965,26 @@ saveButton.addEventListener(
 "click",
 () => {
 
+    // Диагностика: показываем каждый шаг в консоли
+    // и выставляем наблюдаемый маркер (для headless-проверки).
+    console.log(
+        "[Dialog] save clicked"
+    );
+
+    document.body.dataset.wgSaveFired =
+        String(Date.now());
+
     // Сохраняем ровно тот текст, что в окне — включая
     // свежие правки администратора. Клиентский blob-файл,
     // сервер не участвует.
     const text =
         whatsNew.value ||
         "";
+
+    console.log(
+        "[Dialog] text length:",
+        text.length
+    );
 
     const name =
         saveButton.dataset.fileName ||
@@ -985,6 +1003,11 @@ saveButton.addEventListener(
             blob
         );
 
+    console.log(
+        "[Dialog] blob url:",
+        blobUrl
+    );
+
     const a =
         document.createElement(
             "a"
@@ -1000,32 +1023,20 @@ saveButton.addEventListener(
         a
     );
 
-    // Firefox: клик отдельным таском, revoke не раньше
-    // фактического старта скачивания.
+    // Firefox: клик отдельным таском. Якорь и blob-url
+    // НЕ удаляем и НЕ revoke — живут до закрытия страницы
+    // (малые ресурсы, зато ничто не может отменить скачивание).
     setTimeout(
         () => {
 
+            console.log(
+                "[Dialog] anchor click"
+            );
+
             a.click();
 
-            setTimeout(
-                () => {
-
-                    if (
-                        a.parentNode
-                    ) {
-
-                        a.parentNode.removeChild(
-                            a
-                        );
-
-                    }
-
-                    URL.revokeObjectURL(
-                        blobUrl
-                    );
-
-                },
-                5000
+            console.log(
+                "[Dialog] clicked, download should start"
             );
 
         },
@@ -1033,11 +1044,6 @@ saveButton.addEventListener(
     );
 
 }
-);
-
-
-}
-
 );
 
 /*
