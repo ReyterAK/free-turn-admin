@@ -202,6 +202,33 @@ type createInterfaceRequest struct {
 	Address   string `json:"address"`
 }
 
+// maxIfaceName — верхняя граница длины имени интерфейса
+// (RouterOS принимает и длиннее, но для панели хватит).
+const maxIfaceName = 30
+
+// sanitizeInterfaceName приводит имя к допустимому виду:
+// пробелы/табуляции -> "-", недопустимые символы удаляются,
+// длина ограничена. Возвращает "" если результат пуст.
+func sanitizeInterfaceName(s string) string {
+	var out []rune
+	for _, r := range strings.TrimSpace(s) {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9',
+			r == '_', r == '-', r == '.':
+			out = append(out, r)
+		case r == ' ' || r == '\t':
+			if len(out) == 0 || out[len(out)-1] != '-' {
+				out = append(out, '-')
+			}
+		}
+	}
+	res := strings.Trim(string(out), "-")
+	if len(res) > maxIfaceName {
+		res = res[:maxIfaceName]
+	}
+	return res
+}
+
 // wireguardCreateInterface creates a new WireGuard interface on the
 // router (with its address) via the REST API. Requires a RouterOS
 // user with the "write" policy. The listen-port is checked by the
@@ -221,10 +248,14 @@ func (r *Router) wireguardCreateInterface(w http.ResponseWriter, req *http.Reque
 	if req.Body != nil {
 		_ = json.NewDecoder(req.Body).Decode(&body)
 	}
-	body.Name = strings.TrimSpace(body.Name)
+	body.Name = sanitizeInterfaceName(body.Name)
 	body.Address = strings.TrimSpace(body.Address)
+	body.Comment = strings.TrimSpace(body.Comment)
+	if len(body.Comment) > 200 {
+		body.Comment = body.Comment[:200]
+	}
 
-	if body.Name == "" || strings.ContainsAny(body.Name, " \t") {
+	if body.Name == "" {
 		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
 			"status": "error",
 			"error":  "invalid_name",
@@ -314,6 +345,92 @@ func (r *Router) wireguardCreateInterface(w http.ResponseWriter, req *http.Reque
 
 	LogEvent("wireguard", "INTERFACE_CREATED", "WireGuard interface "+body.Name+" created")
 	writeJSON(w, map[string]any{"status": "ok", "interface": created})
+}
+
+// wireguardDeleteInterface removes the interface together with its
+// peers and addresses (RouterOS leaves orphaned peers/addresses
+// otherwise). Requires the "write" policy.
+func (r *Router) wireguardDeleteInterface(w http.ResponseWriter, req *http.Request) {
+	cfg, err := LoadRouterOSConfig()
+	if err != nil || cfg.URL == "" {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "not_configured",
+		})
+		return
+	}
+
+	var body struct {
+		Name string `json:"name"`
+	}
+	if req.Body != nil {
+		_ = json.NewDecoder(req.Body).Decode(&body)
+	}
+	body.Name = strings.TrimSpace(body.Name)
+	if body.Name == "" {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "invalid_name",
+		})
+		return
+	}
+
+	client := routeros.New(cfg.URL, cfg.User, cfg.Pass, 6*time.Second)
+
+	ifaces, err := client.ListInterfaces()
+	if err != nil {
+		writeJSONStatus(w, http.StatusBadGateway, map[string]any{
+			"status": "error",
+			"error":  classifyRouterOSError(err),
+		})
+		return
+	}
+	var target *routeros.Interface
+	for i := range ifaces {
+		if ifaces[i].Name == body.Name {
+			target = &ifaces[i]
+			break
+		}
+	}
+	if target == nil {
+		writeJSONStatus(w, http.StatusNotFound, map[string]any{
+			"status": "error",
+			"error":  "not_found",
+		})
+		return
+	}
+
+	// 1) пиры интерфейса
+	if peers, err := client.ListPeers(); err == nil {
+		for _, p := range peers {
+			if p.Interface == body.Name {
+				_ = client.DeletePeer(p.ID)
+			}
+		}
+	}
+	// 2) адреса интерфейса
+	if addrs, err := client.ListAddresses(); err == nil {
+		for _, a := range addrs {
+			an := a.Interface
+			if an == "" {
+				an = a.ActualInterface
+			}
+			if an == body.Name {
+				_ = client.DeleteAddress(a.ID)
+			}
+		}
+	}
+	// 3) сам интерфейс
+	if err := client.DeleteInterface(target.ID); err != nil {
+		writeJSONStatus(w, http.StatusBadGateway, map[string]any{
+			"status": "error",
+			"error":  classifyRouterOSError(err),
+		})
+		return
+	}
+
+	LogEvent("wireguard", "INTERFACE_DELETED", "WireGuard interface "+body.Name+" deleted")
+	writeJSON(w, map[string]any{"status": "ok"})
 }
 
 // wireguardSaveConfig stores the RouterOS connection settings.

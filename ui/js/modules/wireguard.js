@@ -75,7 +75,41 @@ bindEvents() {
             "click",
             () => {
 
-                this.showCreateForm(false);
+                if (
+                    createToggle.dataset.mode ===
+                    "delete"
+                ) {
+
+                    this.deleteInterface();
+
+                    return;
+
+                }
+
+                this.showCreateForm(true);
+
+            }
+        );
+
+    }
+
+
+    const nameInput =
+        document.getElementById(
+            "wg-iface-name"
+        );
+
+    if (nameInput) {
+
+        nameInput.addEventListener(
+            "input",
+            () => {
+
+                nameInput.value =
+                    nameInput.value
+                        .replace(/\s+/g, "-")
+                        .replace(/[^A-Za-z0-9_.-]/g, "")
+                        .slice(0, 30);
 
             }
         );
@@ -175,41 +209,25 @@ showCreateForm(prefillPort) {
 
     this.clearCreateMsg();
 
-    if (!visible) {
+    if (!visible && prefillPort && this.backend) {
 
-        if (prefillPort) {
-
-            const port =
-                document.getElementById(
-                    "wg-iface-port"
-                );
-
-            if (port)
-                port.value = "";
-
-        }
-
-        const portInput =
+        const port =
             document.getElementById(
                 "wg-iface-port"
             );
 
-        if (portInput && !portInput.value) {
+        if (port)
+            port.value = this.backend.port;
 
-            // подсказка: порт backend, если известен
-            const line =
-                document.getElementById(
-                    "wg-backend-line"
-                );
+        const addr =
+            document.getElementById(
+                "wg-iface-address"
+            );
 
-            if (line && line.dataset.port) {
-
-                portInput.placeholder =
-                    String(line.dataset.port);
-
-            }
-
-        }
+        if (addr)
+            addr.value =
+                this.backend.host +
+                "/24";
 
     }
 
@@ -353,6 +371,9 @@ async createInterface() {
             const created =
                 data.interface || {};
 
+            this.lastCreated =
+                created.name || name;
+
             if (window.Dialog) {
 
                 Dialog.alert(
@@ -445,6 +466,130 @@ showCreateError(text) {
     el.textContent = text;
 
     el.className = "wg-error";
+
+},
+
+//
+// delete interface
+//
+
+async deleteInterface() {
+
+    const name =
+        this.currentIfaceName;
+
+    if (!name || !window.Dialog)
+        return;
+
+    const first =
+        await Dialog.confirm(
+            safeT("wg.delete_confirm_title"),
+            safeT("wg.delete_confirm_text")
+                .replace("%s", name)
+        );
+
+    if (!first)
+        return;
+
+    const second =
+        await Dialog.confirm(
+            safeT("wg.delete_confirm_title"),
+            safeT("wg.delete_confirm2_text")
+                .replace("%s", name)
+        );
+
+    if (!second)
+        return;
+
+    try {
+
+        const resp =
+            await fetch(
+                "/api/wireguard/interface/delete",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers:
+                    {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(
+                        {
+                            name: name
+                        }
+                    )
+                }
+            );
+
+        const data =
+            await resp.json();
+
+        if (data.status === "ok") {
+
+            if (this.lastCreated === name) {
+
+                this.lastCreated = null;
+
+            }
+
+            Dialog.alert(
+                safeT("wg.delete_ok"),
+                name
+            );
+
+            await this.refresh();
+
+            return;
+
+        }
+
+        if (
+            data.error &&
+            typeof data.error === "object"
+        ) {
+
+            if (data.error.kind === "permission") {
+
+                this.showMsg(
+                    safeT("wg.iface_err_write"),
+                    "error"
+                );
+
+                return;
+
+            }
+
+            this.showMsg(
+                safeT("wg.err_unreachable") +
+                " " +
+                (data.error.detail || ""),
+                "error"
+            );
+
+            return;
+
+        }
+
+        this.showMsg(
+            data.error ||
+            safeT("wg.save_error"),
+            "error"
+        );
+
+    }
+    catch (error) {
+
+        console.error(
+            "[WireGuardModule] delete failed",
+            error
+        );
+
+        this.showMsg(
+            String(error),
+            "error"
+        );
+
+    }
 
 },
 
@@ -709,6 +854,14 @@ showMsg(text, kind) {
 
 render(data) {
 
+    this.backend =
+        data.backend_configured
+            ? {
+                host: data.backend_host,
+                port: data.backend_port
+            }
+            : null;
+
     const hint =
         document.getElementById(
             "wg-not-configured"
@@ -869,6 +1022,8 @@ renderBackendState(data) {
         if (missing)
             missing.style.display = "block";
 
+        this.updateCreateDeleteButton(null);
+
         return;
 
     }
@@ -881,6 +1036,10 @@ renderBackendState(data) {
         if (notFound)
             notFound.style.display = "block";
 
+        this.updateCreateDeleteButton(
+            this.lastCreated || null
+        );
+
         return;
 
     }
@@ -890,6 +1049,53 @@ renderBackendState(data) {
         portWarn.style.display = "block";
 
     }
+
+    this.updateCreateDeleteButton(
+        data.match.interface.name
+    );
+
+},
+
+//
+// create/delete toggle button
+//
+
+updateCreateDeleteButton(ifaceName) {
+
+    const btn =
+        document.getElementById(
+            "wg-create-iface"
+        );
+
+    if (!btn)
+        return;
+
+    if (ifaceName) {
+
+        btn.textContent =
+            safeT("wg.delete_iface");
+
+        btn.title =
+            ifaceName;
+
+        btn.dataset.mode = "delete";
+
+        this.currentIfaceName =
+            ifaceName;
+
+        return;
+
+    }
+
+    btn.textContent =
+        safeT("wg.create_iface");
+
+    btn.title = "";
+
+    btn.dataset.mode = "create";
+
+    this.currentIfaceName =
+        null;
 
 },
 

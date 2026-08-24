@@ -234,6 +234,11 @@ func (c *Client) DeleteInterface(id string) error {
 	return c.del("/interface/wireguard/" + id)
 }
 
+// DeletePeer removes a WireGuard peer by .id.
+func (c *Client) DeletePeer(id string) error {
+	return c.del("/interface/wireguard/peers/" + id)
+}
+
 // AddAddress assigns an address to an interface ("10.10.30.1/24").
 func (c *Client) AddAddress(iface, address, comment string) error {
 	payload := map[string]any{

@@ -314,5 +314,10 @@
 "wg.iface_port_conflict": "Port %d is already used by interface %s. Choose another port.",
 "wg.iface_err_write": "Insufficient write rights. Use a user with the write policy (user-rest-api-rw).",
 "wg.iface_created_title": "Interface created",
-"wg.iface_created_text": "Interface %s created on the router.\nAddress: %s\nPort: %s\nPublic key (for client configs):\n%s"
+"wg.iface_created_text": "Interface %s created on the router.\nAddress: %s\nPort: %s\nPublic key (for client configs):\n%s",
+"wg.delete_iface": "Delete interface",
+"wg.delete_confirm_title": "Delete interface",
+"wg.delete_confirm_text": "Delete interface %s?",
+"wg.delete_confirm2_text": "Delete interface %s together with all its peers and addresses? This action cannot be undone.",
+"wg.delete_ok": "Interface deleted"
 }
