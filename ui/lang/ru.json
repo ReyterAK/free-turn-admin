@@ -262,7 +262,7 @@
 "wg.loading": "Загрузка...",
 "wg.not_configured": "Подключение к RouterOS не настроено. Укажите URL, пользователя и пароль, затем «Сохранить подключение».",
 "wg.fetch_error": "Ошибка запроса к RouterOS:",
-"wg.interfaces": "Интерфейсы WireGuard",
+"wg.interfaces": "Интерфейс WireGuard",
 "wg.peers": "Пиры WireGuard",
 "wg.no_interfaces": "Интерфейсов нет",
 "wg.no_peers": "Пиров нет",
@@ -299,5 +299,6 @@
 "wg.create_stub_title": "Создание WireGuard-интерфейса",
 "wg.create_stub_text": "Функция будет доступна в следующей версии.",
 "wg.port_mismatch": "Порт WireGuard не совпадает с настройками Backend-сервера! Измените настройки порта.",
-"wg.col.ip": "IP-адрес"
+"wg.col.ip": "IP-адрес",
+"wg.goto_title": "Перейти к WireGuard"
 }

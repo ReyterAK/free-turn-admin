@@ -13,6 +13,12 @@ window.showTab = function(name) {
 
 };
 
+window.gotoWireGuard = function() {
+
+    showTab("wireguard");
+
+};
+
 
 // ----------------------------------------------------
 // Clients

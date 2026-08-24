@@ -3158,3 +3158,6 @@ h3,
 .wg-box { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 4px; margin: 8px 0; }
 .wg-box-warn { background: #fff8e1; border: 1px solid #f0c040; color: #7a5b00; }
 .wg-box-warn button { margin-left: auto; }
+
+.wg-goto { margin-left: 6px; padding: 0 5px; font-size: 11px; cursor: pointer; border: 1px solid #999; border-radius: 3px; background: transparent; color: #555; vertical-align: middle; line-height: 1.4; }
+.wg-goto:hover { border-color: #333; color: #333; }

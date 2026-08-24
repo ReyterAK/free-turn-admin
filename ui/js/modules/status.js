@@ -370,7 +370,93 @@ render() {
         data
     );
 
-}
+
+    this.injectBackendLink();
+
+},
+
+
+//
+// backend -> wireguard tab shortcut
+//
+
+injectBackendLink() {
+
+    const card =
+        document.getElementById(
+            "system-card"
+        );
+
+    if (!card)
+        return;
+
+    const label =
+        safeT("server.backend");
+
+    const fields =
+        card.querySelectorAll(
+            ".schema-field"
+        );
+
+    for (
+        let i = 0;
+        i < fields.length;
+        i++
+    ) {
+
+        const labelWrap =
+            fields[i].querySelector(
+                ".schema-label-wrap"
+            );
+
+        if (
+            !labelWrap ||
+            !labelWrap.textContent.includes(label)
+        ) {
+
+            continue;
+
+        }
+
+        const old =
+            labelWrap.querySelector(
+                ".wg-goto"
+            );
+
+        if (old)
+            old.remove();
+
+        const btn =
+            document.createElement(
+                "button"
+            );
+
+        btn.type = "button";
+
+        btn.className = "wg-goto";
+
+        btn.textContent = ">>";
+
+        btn.title = safeT("wg.goto_title");
+
+        btn.addEventListener(
+            "click",
+            () => {
+
+                showTab("wireguard");
+
+            }
+        );
+
+        labelWrap.appendChild(
+            btn
+        );
+
+        return;
+
+    }
+
+},
 
 };
 

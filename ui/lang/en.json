@@ -262,7 +262,7 @@
 "wg.loading": "Loading...",
 "wg.not_configured": "RouterOS connection is not configured. Enter URL, user and password, then press 'Save connection'.",
 "wg.fetch_error": "RouterOS request failed:",
-"wg.interfaces": "WireGuard interfaces",
+"wg.interfaces": "WireGuard interface",
 "wg.peers": "WireGuard peers",
 "wg.no_interfaces": "No interfaces",
 "wg.no_peers": "No peers",
@@ -299,5 +299,6 @@
 "wg.create_stub_title": "Create WireGuard interface",
 "wg.create_stub_text": "This feature will be available in the next version.",
 "wg.port_mismatch": "WireGuard port does not match the Backend server settings! Change the port settings.",
-"wg.col.ip": "IP address"
+"wg.col.ip": "IP address",
+"wg.goto_title": "Go to WireGuard"
 }
