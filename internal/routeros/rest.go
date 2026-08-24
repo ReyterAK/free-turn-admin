@@ -56,6 +56,7 @@ func (i *rosInt) UnmarshalJSON(data []byte) error {
 type Interface struct {
 	ID         string  `json:".id"`
 	Name       string  `json:"name"`
+	Comment    string  `json:"comment"`
 	ListenPort rosInt  `json:"listen-port"`
 	PublicKey  string  `json:"public-key"`
 	Running    rosBool `json:"running"`

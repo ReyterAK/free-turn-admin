@@ -13,6 +13,7 @@ package admin
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"freeturn/admin/internal/routeros"
@@ -69,14 +70,16 @@ func (r *Router) wireguardStatus(w http.ResponseWriter, req *http.Request) {
 		"poll_seconds": cfg.PollSeconds,
 	}
 
-	if interfaces, err := client.ListInterfaces(); err != nil {
-		resp["interfaces_error"] = err.Error()
+	interfaces, errI := client.ListInterfaces()
+	if errI != nil {
+		resp["interfaces_error"] = errI.Error()
 	} else {
 		resp["interfaces"] = interfaces
 	}
 
-	if peers, err := client.ListPeers(); err != nil {
-		resp["peers_error"] = err.Error()
+	peers, errP := client.ListPeers()
+	if errP != nil {
+		resp["peers_error"] = errP.Error()
 	} else {
 		for i := range peers {
 			peers[i].FillDerived(onlineAfter)
@@ -84,7 +87,34 @@ func (r *Router) wireguardStatus(w http.ResponseWriter, req *http.Request) {
 		resp["peers"] = peers
 	}
 
+	// Обе секции упали с одной ошибкой соединения → отдаём UI
+	// классифицированную ошибку для баннера (auth | unreachable).
+	if errI != nil && errP != nil {
+		resp["error"] = classifyRouterOSError(errI)
+	}
+
 	writeJSON(w, resp)
+}
+
+// classifyRouterOSError разделяет ошибку соединения с RouterOS:
+//
+//	"auth"       — авторизация не прошла (неверные/пустые креды),
+//	"permission" — прав пользователя недостаточно (нет политик
+//	               api/read или RBAC не даёт доступ к меню),
+//	"unreachable" — URL недоступен или иная сетевая проблема.
+func classifyRouterOSError(err error) map[string]string {
+	msg := err.Error()
+	low := strings.ToLower(msg)
+	kind := "unreachable"
+	switch {
+	case strings.Contains(msg, "401") || strings.Contains(low, "unauthorized"):
+		kind = "auth"
+	case strings.Contains(low, "not allowed") ||
+		strings.Contains(low, "forbidden") ||
+		strings.Contains(msg, "403"):
+		kind = "permission"
+	}
+	return map[string]string{"kind": kind, "detail": msg}
 }
 
 // wireguardSaveConfig stores the RouterOS connection settings.

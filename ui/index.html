@@ -241,7 +241,7 @@
         </div>
 
 
-        <!-- =========================
+                <!-- =========================
              WIREGUARD TAB
         ========================== -->
 
@@ -249,41 +249,29 @@
             id="tab-wireguard"
             class="tab hidden">
 
-            <h3 data-i18n="wg.title">
-                WireGuard (RouterOS)
-            </h3>
+            <div class="wg-head">
 
-            <div class="wg-conn">
+                <h3 data-i18n="wg.title">
+                    WireGuard (RouterOS)
+                </h3>
 
-                <div class="wg-row">
+                <div class="wg-field">
                     <label data-i18n="wg.url">
                         URL RouterOS REST
                     </label>
                     <input
                         id="wg-url"
                         type="text"
-                        placeholder="http://10.10.20.1/rest">
+                        value="http://192.168.88.1/rest"
+                        placeholder="http://192.168.88.1/rest">
+                    <button
+                        type="button"
+                        class="wg-info"
+                        onclick="WireGuardModule.showHelp('url')"
+                        title="?">?</button>
                 </div>
 
-                <div class="wg-row">
-                    <label data-i18n="wg.user">
-                        Пользователь
-                    </label>
-                    <input
-                        id="wg-user"
-                        type="text">
-                </div>
-
-                <div class="wg-row">
-                    <label data-i18n="wg.pass">
-                        Пароль
-                    </label>
-                    <input
-                        id="wg-pass"
-                        type="password">
-                </div>
-
-                <div class="wg-row">
+                <div class="wg-field">
                     <label data-i18n="wg.poll">
                         Интервал обновления (сек)
                     </label>
@@ -295,6 +283,33 @@
                         value="15">
                 </div>
 
+            </div>
+
+            <div class="wg-head">
+
+                <div class="wg-field">
+                    <label data-i18n="wg.user">
+                        Пользователь
+                    </label>
+                    <input
+                        id="wg-user"
+                        type="text">
+                    <button
+                        type="button"
+                        class="wg-info"
+                        onclick="WireGuardModule.showHelp('user')"
+                        title="?">?</button>
+                </div>
+
+                <div class="wg-field">
+                    <label data-i18n="wg.pass">
+                        Пароль
+                    </label>
+                    <input
+                        id="wg-pass"
+                        type="password">
+                </div>
+
                 <button
                     type="button"
                     id="wg-save"
@@ -304,17 +319,15 @@
 
                 </button>
 
-                <button
-                    type="button"
-                    id="wg-refresh"
-                    data-i18n="actions.refresh">
+            </div>
 
-                    Обновить
-
-                </button>
-
+            <div class="wg-actions-line">
                 <span id="wg-msg"></span>
+            </div>
 
+            <div
+                id="wg-error"
+                class="wg-error-banner">
             </div>
 
             <div
@@ -327,44 +340,66 @@
 
             </div>
 
-            <h4 data-i18n="wg.interfaces">
-                Интерфейсы WireGuard
-            </h4>
+            <div class="wg-section">
 
-            <table class="clients-table">
-                <thead>
-                    <tr>
-                        <th data-i18n="wg.col.name">Имя</th>
-                        <th data-i18n="wg.col.listen_port">Порт</th>
-                        <th data-i18n="wg.col.public_key">Публичный ключ</th>
-                        <th data-i18n="wg.col.status">Статус</th>
-                    </tr>
-                </thead>
-                <tbody id="wg-interfaces-body"></tbody>
-            </table>
+                <div class="wg-section-head">
 
-            <h4 data-i18n="wg.peers">
-                Пиры WireGuard
-            </h4>
+                    <h4 data-i18n="wg.interfaces">
+                        Интерфейсы WireGuard
+                    </h4>
 
-            <table class="clients-table">
-                <thead>
-                    <tr>
-                        <th data-i18n="wg.col.name">Имя</th>
-                        <th data-i18n="wg.col.interface">Интерфейс</th>
-                        <th data-i18n="wg.col.allowed">Allowed address</th>
-                        <th data-i18n="wg.col.endpoint">Endpoint</th>
-                        <th data-i18n="wg.col.handshake">Последний handshake</th>
-                        <th data-i18n="wg.col.rx">RX</th>
-                        <th data-i18n="wg.col.tx">TX</th>
-                        <th data-i18n="wg.col.status">Статус</th>
-                    </tr>
-                </thead>
-                <tbody id="wg-peers-body"></tbody>
-            </table>
+                    <button
+                        type="button"
+                        id="wg-refresh"
+                        data-i18n="actions.refresh">
+
+                        Обновить
+
+                    </button>
+
+                </div>
+
+                <table class="clients-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="wg.col.name">Имя</th>
+                            <th data-i18n="wg.col.comment">Комментарий</th>
+                            <th data-i18n="wg.col.listen_port">Порт</th>
+                            <th data-i18n="wg.col.public_key">Публичный ключ</th>
+                            <th data-i18n="wg.col.status">Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody id="wg-interfaces-body"></tbody>
+                </table>
+
+            </div>
+
+            <div class="wg-section">
+
+                <h4 data-i18n="wg.peers">
+                    Пиры WireGuard
+                </h4>
+
+                <table class="clients-table">
+                    <thead>
+                        <tr>
+                            <th data-i18n="wg.col.name">Имя</th>
+                            <th data-i18n="wg.col.comment">Комментарий</th>
+                            <th data-i18n="wg.col.interface">Интерфейс</th>
+                            <th data-i18n="wg.col.allowed">Allowed address</th>
+                            <th data-i18n="wg.col.endpoint">Endpoint</th>
+                            <th data-i18n="wg.col.handshake">Последний handshake</th>
+                            <th data-i18n="wg.col.rx">RX</th>
+                            <th data-i18n="wg.col.tx">TX</th>
+                            <th data-i18n="wg.col.status">Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody id="wg-peers-body"></tbody>
+                </table>
+
+            </div>
 
         </div>
-
 
     </div>
     <!-- /content -->

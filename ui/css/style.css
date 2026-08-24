@@ -3134,12 +3134,22 @@ h3,
     display: none !important;
 }
 /* WireGuard tab */
-.wg-conn { margin-bottom: 16px; }
-.wg-row { margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-.wg-row label { min-width: 220px; }
-.wg-row input { flex: 1; max-width: 420px; }
-.wg-hint { color: #888; margin: 8px 0 16px; }
+.wg-head { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; margin-bottom: 8px; }
+.wg-head h3 { margin: 0; }
+.wg-field { display: flex; align-items: center; gap: 6px; }
+.wg-field label { white-space: nowrap; }
+.wg-field input { width: 240px; }
+#wg-poll { width: 80px; }
+.wg-info { width: 22px; height: 22px; border-radius: 50%; border: 1px solid #999; background: transparent; color: #777; cursor: pointer; font-weight: bold; line-height: 1; padding: 0; }
+.wg-info:hover { border-color: #333; color: #333; }
+.wg-actions-line { margin: 4px 0 8px; min-height: 18px; }
 .wg-error { color: #c0392b; margin-left: 12px; }
 .wg-ok { color: #27ae60; margin-left: 12px; }
+.wg-error-banner { display: none; background: #fdecea; border: 1px solid #c0392b; color: #c0392b; padding: 8px 12px; border-radius: 4px; margin: 8px 0; }
+.wg-hint { color: #888; margin: 8px 0 16px; }
+.wg-section { border-top: 1px solid #ddd; margin-top: 18px; padding-top: 12px; }
+.wg-section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.wg-section-head h4 { margin: 0; }
+.wg-section h4 { margin: 0 0 6px; }
 .wg-online { color: #27ae60; font-weight: bold; }
 .wg-offline { color: #c0392b; }

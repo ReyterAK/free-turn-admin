@@ -281,5 +281,13 @@
 "wg.disabled": "отключён",
 "wg.online": "онлайн",
 "wg.offline": "офлайн",
-"wg.never": "никогда"
+"wg.never": "никогда",
+"wg.err_unreachable": "Не удалось подключиться к RouterOS REST (URL недоступен):",
+"wg.err_auth": "Ошибка авторизации на RouterOS (проверьте пользователя и пароль):",
+"wg.err_permission": "Недостаточно прав пользователя на RouterOS (нужны политики api и read):",
+"wg.col.comment": "Комментарий",
+"wg.url_help_title": "URL RouterOS REST",
+"wg.url_help_text": "Адрес REST API роутера: http://<IP-роутера>/rest (включён по умолчанию на RouterOS 7.1+).\nДля контейнера на самом роутере: http://127.0.0.1/rest (host-сеть) или http://192.168.88.1/rest (стандартный LAN-IP RouterOS).",
+"wg.user_help_title": "Пользователь RouterOS",
+"wg.user_help_text": "Учётная запись для панели создаётся в Winbox:\n1) System → Users → Groups → «+»: имя (напр. wg-view), Policies: api + read.\n2) System → Users → «+»: user=..., group=wg-view, password=...\nДля чтения достаточно api + read; для управления (v2) добавить write.\nВажно: REST требует политику api (не rest-api!)."
 }

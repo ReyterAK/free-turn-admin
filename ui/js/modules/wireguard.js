@@ -65,6 +65,37 @@ bindEvents() {
 },
 
 //
+// help
+//
+
+showHelp(kind) {
+
+    const titleKey =
+        kind === "user"
+            ? "wg.user_help_title"
+            : "wg.url_help_title";
+
+    const textKey =
+        kind === "user"
+            ? "wg.user_help_text"
+            : "wg.url_help_text";
+
+    if (window.Dialog) {
+
+        Dialog.alert(
+            safeT(titleKey),
+            safeT(textKey)
+        );
+
+        return;
+
+    }
+
+    alert(safeT(textKey));
+
+},
+
+//
 // data
 //
 
@@ -159,7 +190,9 @@ async refresh() {
 
         this.render(data);
 
-        if (!data.interfaces_error && !data.peers_error) {
+        if (!data.error &&
+            !data.interfaces_error &&
+            !data.peers_error) {
 
             this.showMsg(
                 "",
@@ -316,6 +349,8 @@ render(data) {
         if (hint)
             hint.style.display = "block";
 
+        this.renderError(null);
+
         this.renderInterfaces(
             null,
             null
@@ -333,6 +368,8 @@ render(data) {
     if (hint)
         hint.style.display = "none";
 
+    this.renderError(data.error);
+
     this.renderInterfaces(
         data.interfaces,
         data.interfaces_error
@@ -343,15 +380,51 @@ render(data) {
         data.peers_error
     );
 
-    if (data.interfaces_error || data.peers_error) {
+},
 
-        this.showMsg(
-            data.interfaces_error ||
-            data.peers_error,
-            "error"
+renderError(err) {
+
+    const el =
+        document.getElementById(
+            "wg-error"
         );
 
+    if (!el)
+        return;
+
+    if (!err) {
+
+        el.style.display = "none";
+
+        el.textContent = "";
+
+        return;
+
     }
+
+    let prefix;
+
+    switch (err.kind) {
+
+        case "auth":
+            prefix = safeT("wg.err_auth");
+            break;
+
+        case "permission":
+            prefix = safeT("wg.err_permission");
+            break;
+
+        default:
+            prefix = safeT("wg.err_unreachable");
+
+    }
+
+    el.style.display = "block";
+
+    el.textContent =
+        prefix +
+        " " +
+        (err.detail || "");
 
 },
 
@@ -370,7 +443,7 @@ renderInterfaces(list, err) {
     if (err) {
 
         body.innerHTML =
-            "<tr><td colspan='4'>" +
+            "<tr><td colspan='5'>" +
             safeT("wg.fetch_error") +
             " " +
             escapeHtml(err) +
@@ -383,7 +456,7 @@ renderInterfaces(list, err) {
     if (!list || !list.length) {
 
         body.innerHTML =
-            "<tr><td colspan='4'>" +
+            "<tr><td colspan='5'>" +
             safeT("wg.no_interfaces") +
             "</td></tr>";
 
@@ -415,6 +488,10 @@ renderInterfaces(list, err) {
 
             tr.appendChild(
                 this.td(iface.name || iface[".id"])
+            );
+
+            tr.appendChild(
+                this.td(iface.comment || "")
             );
 
             tr.appendChild(
@@ -451,7 +528,7 @@ renderPeers(list, err) {
     if (err) {
 
         body.innerHTML =
-            "<tr><td colspan='7'>" +
+            "<tr><td colspan='9'>" +
             safeT("wg.fetch_error") +
             " " +
             escapeHtml(err) +
@@ -464,7 +541,7 @@ renderPeers(list, err) {
     if (!list || !list.length) {
 
         body.innerHTML =
-            "<tr><td colspan='7'>" +
+            "<tr><td colspan='9'>" +
             safeT("wg.no_peers") +
             "</td></tr>";
 
@@ -495,6 +572,10 @@ renderPeers(list, err) {
 
             tr.appendChild(
                 this.td(peer.name || peer[".id"])
+            );
+
+            tr.appendChild(
+                this.td(peer.comment || "")
             );
 
             tr.appendChild(
