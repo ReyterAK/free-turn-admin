@@ -89,6 +89,14 @@ type Peer struct {
 	Online           bool  `json:"online"`
 }
 
+// Address is a RouterOS IP address entry (/ip/address).
+type Address struct {
+	ID              string `json:".id"`
+	Interface       string `json:"interface"`
+	ActualInterface string `json:"actual-interface"`
+	Address         string `json:"address"` // "10.10.20.1/24"
+}
+
 // Client is a minimal RouterOS REST API client.
 type Client struct {
 	baseURL string
@@ -142,6 +150,16 @@ func (c *Client) ListInterfaces() ([]Interface, error) {
 func (c *Client) ListPeers() ([]Peer, error) {
 	var out []Peer
 	if err := c.get("/interface/wireguard/peers", &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ListAddresses returns all IP addresses (/ip/address) — used to
+// map WireGuard interface names to their IPs.
+func (c *Client) ListAddresses() ([]Address, error) {
+	var out []Address
+	if err := c.get("/ip/address", &out); err != nil {
 		return nil, err
 	}
 	return out, nil

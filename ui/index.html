@@ -331,6 +331,59 @@
             </div>
 
             <div
+                id="wg-backend-line"
+                class="wg-backend-line"
+                style="display: none;">
+            </div>
+
+            <div
+                id="wg-backend-missing"
+                class="wg-box wg-box-warn"
+                style="display: none;">
+
+                <span data-i18n="wg.backend_missing">
+                    Отсутствуют настройки Backend-сервер.
+                </span>
+
+                <button
+                    type="button"
+                    onclick="showTab('server')"
+                    data-i18n="wg.backend_go_settings">
+
+                    Перейти к настройкам сервера
+
+                </button>
+
+            </div>
+
+            <div
+                id="wg-match-missing"
+                class="wg-box wg-box-warn"
+                style="display: none;">
+
+                <span data-i18n="wg.iface_not_found">
+                    Не найден WireGuard-интерфейс.
+                </span>
+
+                <button
+                    type="button"
+                    onclick="WireGuardModule.createInterfaceStub()"
+                    data-i18n="wg.iface_create">
+
+                    Создать новый WireGuard-интерфейс
+
+                </button>
+
+            </div>
+
+            <div
+                id="wg-port-warn"
+                class="wg-box wg-box-warn"
+                style="display: none;"
+                data-i18n="wg.port_mismatch">
+            </div>
+
+            <div
                 id="wg-not-configured"
                 class="wg-hint"
                 style="display: none;"
@@ -364,6 +417,7 @@
                         <tr>
                             <th data-i18n="wg.col.name">Имя</th>
                             <th data-i18n="wg.col.comment">Комментарий</th>
+                            <th data-i18n="wg.col.ip">IP-адрес</th>
                             <th data-i18n="wg.col.listen_port">Порт</th>
                             <th data-i18n="wg.col.public_key">Публичный ключ</th>
                             <th data-i18n="wg.col.status">Статус</th>
@@ -385,7 +439,6 @@
                         <tr>
                             <th data-i18n="wg.col.name">Имя</th>
                             <th data-i18n="wg.col.comment">Комментарий</th>
-                            <th data-i18n="wg.col.interface">Интерфейс</th>
                             <th data-i18n="wg.col.allowed">Allowed address</th>
                             <th data-i18n="wg.col.endpoint">Endpoint</th>
                             <th data-i18n="wg.col.handshake">Последний handshake</th>

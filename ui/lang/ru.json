@@ -289,5 +289,15 @@
 "wg.url_help_title": "URL RouterOS REST",
 "wg.url_help_text": "Адрес REST API роутера: http://<IP-роутера>/rest (включён по умолчанию на RouterOS 7.1+).\nДля контейнера на самом роутере: http://127.0.0.1/rest (host-сеть) или http://192.168.88.1/rest (стандартный LAN-IP RouterOS).",
 "wg.user_help_title": "Пользователь RouterOS",
-"wg.user_help_text": "Учётная запись для панели создаётся в Winbox:\n1) System → Users → Groups → «+»: имя (напр. wg-view), Policies: api + read.\n2) System → Users → «+»: user=..., group=wg-view, password=...\nДля чтения достаточно api + read; для управления (v2) добавить write.\nВажно: REST требует политику api (не rest-api!)."
+"wg.user_help_text": "Учётная запись для панели создаётся в Winbox:\n1) System → Users → Groups → «+»: имя (напр. wg-view), Policies: api + read.\n2) System → Users → «+»: user=..., group=wg-view, password=...\nДля чтения достаточно api + read; для управления (v2) добавить write.\nВажно: REST требует политику api (не rest-api!).",
+"wg.backend_label": "Backend-сервер:",
+"wg.backend_missing": "Отсутствуют настройки Backend-сервер. В «Настройки сервера» укажите IP-адрес и порт WireGuard-интерфейса.",
+"wg.backend_go_settings": "Перейти к настройкам сервера",
+"wg.iface_not_found": "Не найден WireGuard-интерфейс с указанными в «Backend-сервер» параметрами.",
+"wg.iface_create": "Создать новый WireGuard-интерфейс",
+"wg.iface_create_text": "Будет создан интерфейс WireGuard с IP и портом из настроек Backend-сервер. Продолжить?",
+"wg.create_stub_title": "Создание WireGuard-интерфейса",
+"wg.create_stub_text": "Функция будет доступна в следующей версии.",
+"wg.port_mismatch": "Порт WireGuard не совпадает с настройками Backend-сервера! Измените настройки порта.",
+"wg.col.ip": "IP-адрес"
 }

@@ -289,5 +289,15 @@
 "wg.url_help_title": "RouterOS REST URL",
 "wg.url_help_text": "Router REST API address: http://<router-IP>/rest (enabled by default on RouterOS 7.1+).\nFor a container on the router itself: http://127.0.0.1/rest (host network) or http://192.168.88.1/rest (default RouterOS LAN IP).",
 "wg.user_help_title": "RouterOS user",
-"wg.user_help_text": "Panel account is created in Winbox:\n1) System → Users → Groups → '+': name (e.g. wg-view), Policies: api + read.\n2) System → Users → '+': user=..., group=wg-view, password=...\nRead access needs api + read; management (v2) adds write.\nNote: REST requires the api policy (not rest-api!)."
+"wg.user_help_text": "Panel account is created in Winbox:\n1) System → Users → Groups → '+': name (e.g. wg-view), Policies: api + read.\n2) System → Users → '+': user=..., group=wg-view, password=...\nRead access needs api + read; management (v2) adds write.\nNote: REST requires the api policy (not rest-api!).",
+"wg.backend_label": "Backend server:",
+"wg.backend_missing": "Backend server is not configured. In 'Server settings' specify the IP address and port of the WireGuard interface.",
+"wg.backend_go_settings": "Go to server settings",
+"wg.iface_not_found": "No WireGuard interface found matching the 'Backend server' settings.",
+"wg.iface_create": "Create a new WireGuard interface",
+"wg.iface_create_text": "A WireGuard interface with the IP and port from the Backend server settings will be created. Continue?",
+"wg.create_stub_title": "Create WireGuard interface",
+"wg.create_stub_text": "This feature will be available in the next version.",
+"wg.port_mismatch": "WireGuard port does not match the Backend server settings! Change the port settings.",
+"wg.col.ip": "IP address"
 }

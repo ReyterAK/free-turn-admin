@@ -2,7 +2,8 @@
 // WireGuard Module
 // FreeTurn Admin — RouterOS WireGuard monitoring
 //
-// Read-only v1: interfaces and peers from the RouterOS REST API.
+// Shows the WireGuard interface matching the Backend-server
+// settings (IP + port) and only its peers.
 //
 
 const WireGuardModule = {
@@ -92,6 +93,31 @@ showHelp(kind) {
     }
 
     alert(safeT(textKey));
+
+},
+
+//
+// create stub (v2)
+//
+
+async createInterfaceStub() {
+
+    if (!window.Dialog)
+        return;
+
+    const confirmed =
+        await Dialog.confirm(
+            safeT("wg.iface_create"),
+            safeT("wg.iface_create_text")
+        );
+
+    if (!confirmed)
+        return;
+
+    Dialog.alert(
+        safeT("wg.create_stub_title"),
+        safeT("wg.create_stub_text")
+    );
 
 },
 
@@ -368,15 +394,13 @@ render(data) {
 
         this.renderError(null);
 
-        this.renderInterfaces(
-            null,
-            null
-        );
+        this.renderBackendLine(null);
 
-        this.renderPeers(
-            null,
-            null
-        );
+        this.renderBackendState(null);
+
+        this.renderInterface(null);
+
+        this.renderPeers(null, null);
 
         return;
 
@@ -387,13 +411,19 @@ render(data) {
 
     this.renderError(data.error);
 
-    this.renderInterfaces(
-        data.interfaces,
-        data.interfaces_error
-    );
+    this.renderBackendLine(data);
+
+    this.renderBackendState(data);
+
+    const iface =
+        data.match && data.match.interface
+            ? data.match.interface
+            : null;
+
+    this.renderInterface(iface);
 
     this.renderPeers(
-        data.peers,
+        iface ? data.peers : null,
         data.peers_error
     );
 
@@ -445,7 +475,93 @@ renderError(err) {
 
 },
 
-renderInterfaces(list, err) {
+renderBackendLine(data) {
+
+    const el =
+        document.getElementById(
+            "wg-backend-line"
+        );
+
+    if (!el)
+        return;
+
+    if (data && data.backend_configured) {
+
+        el.style.display = "block";
+
+        el.textContent =
+            safeT("wg.backend_label") +
+            " " +
+            data.backend_host +
+            ":" +
+            data.backend_port;
+
+        return;
+
+    }
+
+    el.style.display = "none";
+
+},
+
+renderBackendState(data) {
+
+    const missing =
+        document.getElementById(
+            "wg-backend-missing"
+        );
+
+    const notFound =
+        document.getElementById(
+            "wg-match-missing"
+        );
+
+    const portWarn =
+        document.getElementById(
+            "wg-port-warn"
+        );
+
+    const hide = el => {
+
+        if (el)
+            el.style.display = "none";
+
+    };
+
+    hide(missing);
+    hide(notFound);
+    hide(portWarn);
+
+    if (!data || !data.backend_configured) {
+
+        if (missing)
+            missing.style.display = "block";
+
+        return;
+
+    }
+
+    const status =
+        data.match && data.match.status;
+
+    if (status === "ip_not_found") {
+
+        if (notFound)
+            notFound.style.display = "block";
+
+        return;
+
+    }
+
+    if (status === "port_mismatch" && portWarn) {
+
+        portWarn.style.display = "block";
+
+    }
+
+},
+
+renderInterface(iface) {
 
     const body =
         document.getElementById(
@@ -457,76 +573,59 @@ renderInterfaces(list, err) {
 
     body.innerHTML = "";
 
-    if (err) {
+    if (!iface) {
 
         body.innerHTML =
-            "<tr><td colspan='5'>" +
-            safeT("wg.fetch_error") +
-            " " +
-            escapeHtml(err) +
-            "</td></tr>";
+            "<tr><td colspan='6'></td></tr>";
 
         return;
 
     }
 
-    if (!list || !list.length) {
+    const tr =
+        document.createElement(
+            "tr"
+        );
 
-        body.innerHTML =
-            "<tr><td colspan='5'>" +
-            safeT("wg.no_interfaces") +
-            "</td></tr>";
+    const disabled =
+        iface.disabled === true ||
+        iface.disabled === "true";
 
-        return;
+    const running =
+        iface.running === true ||
+        iface.running === "true";
 
-    }
+    const status = disabled
+        ? safeT("wg.disabled")
+        : running
+            ? safeT("wg.running")
+            : safeT("wg.stopped");
 
-    list.forEach(
-        iface => {
-
-            const tr =
-                document.createElement(
-                    "tr"
-                );
-
-            const disabled =
-                iface.disabled === true ||
-                iface.disabled === "true";
-
-            const running =
-                iface.running === true ||
-                iface.running === "true";
-
-            const status = disabled
-                ? safeT("wg.disabled")
-                : running
-                    ? safeT("wg.running")
-                    : safeT("wg.stopped");
-
-            tr.appendChild(
-                this.td(iface.name || iface[".id"])
-            );
-
-            tr.appendChild(
-                this.td(iface.comment || "")
-            );
-
-            tr.appendChild(
-                this.td(String(iface["listen-port"] || ""))
-            );
-
-            tr.appendChild(
-                this.td(iface["public-key"] || "")
-            );
-
-            tr.appendChild(
-                this.td(status)
-            );
-
-            body.appendChild(tr);
-
-        }
+    tr.appendChild(
+        this.td(iface.name || "")
     );
+
+    tr.appendChild(
+        this.td(iface.comment || "")
+    );
+
+    tr.appendChild(
+        this.td((iface.ips || []).join(", "))
+    );
+
+    tr.appendChild(
+        this.td(String(iface["listen-port"] || ""))
+    );
+
+    tr.appendChild(
+        this.td(iface["public-key"] || "")
+    );
+
+    tr.appendChild(
+        this.td(status)
+    );
+
+    body.appendChild(tr);
 
 },
 
@@ -545,7 +644,7 @@ renderPeers(list, err) {
     if (err) {
 
         body.innerHTML =
-            "<tr><td colspan='9'>" +
+            "<tr><td colspan='8'>" +
             safeT("wg.fetch_error") +
             " " +
             escapeHtml(err) +
@@ -558,7 +657,7 @@ renderPeers(list, err) {
     if (!list || !list.length) {
 
         body.innerHTML =
-            "<tr><td colspan='9'>" +
+            "<tr><td colspan='8'>" +
             safeT("wg.no_peers") +
             "</td></tr>";
 
@@ -593,10 +692,6 @@ renderPeers(list, err) {
 
             tr.appendChild(
                 this.td(peer.comment || "")
-            );
-
-            tr.appendChild(
-                this.td(peer.interface || "")
             );
 
             tr.appendChild(

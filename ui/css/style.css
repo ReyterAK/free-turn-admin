@@ -3153,3 +3153,8 @@ h3,
 .wg-section h4 { margin: 0 0 6px; }
 .wg-online { color: #27ae60; font-weight: bold; }
 .wg-offline { color: #c0392b; }
+
+.wg-backend-line { font-weight: bold; margin: 4px 0 8px; }
+.wg-box { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 4px; margin: 8px 0; }
+.wg-box-warn { background: #fff8e1; border: 1px solid #f0c040; color: #7a5b00; }
+.wg-box-warn button { margin-left: auto; }
