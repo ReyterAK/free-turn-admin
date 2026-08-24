@@ -1154,6 +1154,14 @@ fillForm(data) {
     if (poll)
         poll.value = data.poll_seconds || 15;
 
+    const dns =
+        document.getElementById(
+            "wg-dns"
+        );
+
+    if (dns)
+        dns.value = data.client_dns || "1.1.1.1";
+
     // Пароль намеренно не возвращается в браузер —
     // показываем только признак «задан» (звёздочки).
     const pass =
@@ -1235,7 +1243,10 @@ async saveConfig() {
             parseInt(
                 this.inputValue("wg-poll"),
                 10
-            ) || 15
+            ) || 15,
+
+        client_dns:
+            this.inputValue("wg-dns").trim()
 
     };
 

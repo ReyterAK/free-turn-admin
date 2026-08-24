@@ -336,5 +336,6 @@
 "wg.config_btn": "WG.config",
 "wg.col.client": "Клиент",
 "wg.copy": "Копировать",
-"wg.save_file": "Сохранить в файл"
+"wg.save_file": "Сохранить в файл",
+"wg.dns": "DNS клиентов"
 }

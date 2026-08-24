@@ -32,7 +32,12 @@ type RouterOSConfig struct {
 	User        string `json:"user"`
 	Pass        string `json:"pass"`
 	PollSeconds int    `json:"poll_seconds"`
+	// ClientDNS — DNS для клиентских WG-конфигов ("1.1.1.1" по умолчанию).
+	ClientDNS string `json:"client_dns,omitempty"`
 }
+
+// defaultClientDNS used when the setting is empty.
+const defaultClientDNS = "1.1.1.1"
 
 // onlineAfter — a peer counts as online when its last handshake
 // is younger than this.
@@ -47,6 +52,9 @@ func LoadRouterOSConfig() (RouterOSConfig, error) {
 	}
 	if cfg.PollSeconds < 5 || cfg.PollSeconds > 600 {
 		cfg.PollSeconds = 15
+	}
+	if cfg.ClientDNS == "" {
+		cfg.ClientDNS = defaultClientDNS
 	}
 	return cfg, nil
 }
@@ -104,6 +112,7 @@ func (r *Router) wireguardStatus(w http.ResponseWriter, req *http.Request) {
 		"user":         cfg.User,
 		"pass_set":     cfg.Pass != "",
 		"poll_seconds": cfg.PollSeconds,
+		"client_dns":   cfg.ClientDNS,
 	}
 
 	backendHost, backendPort, backendOK := backendHostPort()
@@ -629,6 +638,7 @@ func (r *Router) wireguardCreatePeer(w http.ResponseWriter, req *http.Request) {
 			kp.AllowedAddr,
 			serverPublicKeyFor(client, body.InterfaceName),
 			backendEndpoint(),
+			cfg.ClientDNS,
 		),
 	})
 }
@@ -705,6 +715,7 @@ func (r *Router) wireguardPeerConfig(w http.ResponseWriter, req *http.Request) {
 			kp.AllowedAddr,
 			serverPublicKeyFor(client, kp.WGInterface),
 			backendEndpoint(),
+			cfg.ClientDNS,
 		),
 	})
 }
@@ -739,6 +750,14 @@ func (r *Router) wireguardSaveConfig(w http.ResponseWriter, req *http.Request) {
 	if body.Pass == "" {
 		if cur, err := LoadRouterOSConfig(); err == nil {
 			body.Pass = cur.Pass
+		}
+	}
+	// Пустой DNS = сохранить прежний (или дефолт).
+	if body.ClientDNS == "" {
+		if cur, err := LoadRouterOSConfig(); err == nil && cur.ClientDNS != "" {
+			body.ClientDNS = cur.ClientDNS
+		} else {
+			body.ClientDNS = defaultClientDNS
 		}
 	}
 	if err := SaveRouterOSConfig(body); err != nil {

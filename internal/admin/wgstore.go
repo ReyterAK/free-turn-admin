@@ -196,11 +196,11 @@ func addrInSubnet(addr, ifaceCIDR string) bool {
 
 // buildClientConfig assembles the WireGuard client config in the
 // same format the URI generator embeds (uriExportDataCollector).
-func buildClientConfig(privateKey, address, serverPublicKey, endpoint string) string {
+func buildClientConfig(privateKey, address, serverPublicKey, endpoint, dns string) string {
 	return "[Interface]\n" +
 		"PrivateKey = " + privateKey + "\n" +
 		"Address = " + address + "\n" +
-		"DNS = 1.1.1.1\n" +
+		"DNS = " + dns + "\n" +
 		"[Peer]\n" +
 		"PublicKey = " + serverPublicKey + "\n" +
 		"AllowedIPs = 0.0.0.0/0\n" +

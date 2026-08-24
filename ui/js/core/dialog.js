@@ -40,11 +40,6 @@ document.getElementById(
 "dialog-modal-input"
 );
 
-const copyButton =
-document.getElementById(
-"dialog-modal-copy"
-);
-
 const saveButton =
 document.getElementById(
 "dialog-modal-save"
@@ -83,46 +78,6 @@ let promptState =
 null;
 
 /*
-Fallback clipboard copy for non-secure
-contexts (plain HTTP LAN) where the
-async Clipboard API is unavailable.
-*/
-
-function fallbackCopy(text) {
-
-    whatsNew.focus();
-
-    whatsNew.select();
-
-    whatsNew.setSelectionRange(
-        0,
-        text.length
-    );
-
-    try {
-
-        document.execCommand(
-            "copy"
-        );
-
-    }
-    catch (error) {
-
-        console.error(
-            "[Dialog] copy failed",
-            error
-        );
-
-    }
-
-    whatsNew.setSelectionRange(
-        0,
-        0
-    );
-
-}
-
-/*
 OPEN
 
 */
@@ -158,6 +113,9 @@ whatsNew.value =
 whatsNew.classList.add(
 "hidden"
 );
+
+whatsNew.readOnly =
+!options.editable;
 
 message.classList.remove(
 "hidden"
@@ -227,10 +185,6 @@ Copy-to-clipboard and save-to-file buttons
 for the WG.config dialog.
 */
 
-copyButton.classList.add(
-    "hidden"
-);
-
 saveButton.classList.add(
     "hidden"
 );
@@ -238,10 +192,6 @@ saveButton.classList.add(
 if (
 options.showConfigActions
 ) {
-
-copyButton.classList.remove(
-    "hidden"
-);
 
 saveButton.classList.remove(
     "hidden"
@@ -661,6 +611,7 @@ resolve => {
         {
             readonlyMessage: true,
             showConfigActions: true,
+            editable: true,
             fileName:
                 options.fileName ||
                 "WG.config"
@@ -996,40 +947,8 @@ close(
 
 
 /*
-COPY / SAVE handlers for the config dialog.
+SAVE handler for the config dialog.
 */
-
-copyButton.addEventListener(
-"click",
-() => {
-
-    const text =
-        whatsNew.value ||
-        "";
-
-    if (
-        navigator.clipboard &&
-        navigator.clipboard.writeText
-    ) {
-
-        navigator.clipboard
-            .writeText(text)
-            .catch(
-                () => {
-
-                    fallbackCopy(text);
-
-                }
-            );
-
-        return;
-
-    }
-
-    fallbackCopy(text);
-
-}
-);
 
 saveButton.addEventListener(
 "click",
@@ -1075,8 +994,17 @@ saveButton.addEventListener(
         a
     );
 
-    URL.revokeObjectURL(
-        url
+    // Firefox отменяет ещё не начавшееся скачивание при
+    // мгновенном revoke — откладываем на секунду.
+    setTimeout(
+        () => {
+
+            URL.revokeObjectURL(
+                url
+            );
+
+        },
+        1000
     );
 
 }
