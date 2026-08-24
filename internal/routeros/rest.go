@@ -91,6 +91,7 @@ type Peer struct {
 	Online           bool   `json:"online"`
 	HasKeypair       bool   `json:"has_keypair"`
 	KeypairClientID  string `json:"keypair_client_id,omitempty"`
+	KeypairClient    string `json:"keypair_client,omitempty"`
 }
 
 // Address is a RouterOS IP address entry (/ip/address).

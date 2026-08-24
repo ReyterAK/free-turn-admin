@@ -893,9 +893,37 @@ async showPeerConfig(publicKey, name) {
             );
 
             return;
+        }
+
+        if (window.Dialog && window.Dialog.config) {
+
+            const client =
+                data.client_comment || "";
+
+            const title =
+                safeT("wg.config_title") +
+                " — " +
+                name +
+                (client
+                    ? " · " +
+                      safeT("wg.col.client") +
+                      ": " +
+                      client
+                    : "");
+
+            Dialog.config(
+                title,
+                data.config || "",
+                {
+                    fileName: "WG.config"
+                }
+            );
+
+            return;
 
         }
 
+        // фолбэк без расширенного диалога
         if (window.Dialog) {
 
             Dialog.alert(
@@ -1639,7 +1667,7 @@ renderPeers(list, err) {
     if (err) {
 
         body.innerHTML =
-            "<tr><td colspan='9'>" +
+            "<tr><td colspan='10'>" +
             safeT("wg.fetch_error") +
             " " +
             escapeHtml(err) +
@@ -1652,7 +1680,7 @@ renderPeers(list, err) {
     if (!list || !list.length) {
 
         body.innerHTML =
-            "<tr><td colspan='9'>" +
+            "<tr><td colspan='10'>" +
             safeT("wg.no_peers") +
             "</td></tr>";
 
@@ -1687,6 +1715,10 @@ renderPeers(list, err) {
 
             tr.appendChild(
                 this.td(peer.comment || "")
+            );
+
+            tr.appendChild(
+                this.td(peer.keypair_client || "")
             );
 
             tr.appendChild(

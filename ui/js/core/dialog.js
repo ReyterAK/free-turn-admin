@@ -40,6 +40,16 @@ document.getElementById(
 "dialog-modal-input"
 );
 
+const copyButton =
+document.getElementById(
+"dialog-modal-copy"
+);
+
+const saveButton =
+document.getElementById(
+"dialog-modal-save"
+);
+
 const cancelButton =
 document.getElementById(
 "dialog-modal-cancel"
@@ -73,6 +83,46 @@ let promptState =
 null;
 
 /*
+Fallback clipboard copy for non-secure
+contexts (plain HTTP LAN) where the
+async Clipboard API is unavailable.
+*/
+
+function fallbackCopy(text) {
+
+    whatsNew.focus();
+
+    whatsNew.select();
+
+    whatsNew.setSelectionRange(
+        0,
+        text.length
+    );
+
+    try {
+
+        document.execCommand(
+            "copy"
+        );
+
+    }
+    catch (error) {
+
+        console.error(
+            "[Dialog] copy failed",
+            error
+        );
+
+    }
+
+    whatsNew.setSelectionRange(
+        0,
+        0
+    );
+
+}
+
+/*
 OPEN
 
 */
@@ -90,6 +140,10 @@ type;
 
 title.textContent =
 dialogTitle || "";
+
+saveButton.dataset.fileName =
+options.fileName ||
+"WG.config";
 
 message.textContent =
 dialogMessage || "";
@@ -163,6 +217,35 @@ whatsNew.classList.remove(
 whatsNew.value =
     dialogMessage || "";
 
+
+}
+
+/*
+CONFIG ACTIONS
+
+Copy-to-clipboard and save-to-file buttons
+for the WG.config dialog.
+*/
+
+copyButton.classList.add(
+    "hidden"
+);
+
+saveButton.classList.add(
+    "hidden"
+);
+
+if (
+options.showConfigActions
+) {
+
+copyButton.classList.remove(
+    "hidden"
+);
+
+saveButton.classList.remove(
+    "hidden"
+);
 
 }
 
@@ -556,6 +639,40 @@ PROMPT
 
 */
 
+function config(
+dialogTitle,
+configText,
+options = {}
+) {
+
+return new Promise(
+resolve => {
+
+
+    resolver =
+        resolve;
+
+
+    open(
+        "alert",
+        dialogTitle,
+        configText,
+        "",
+        {
+            readonlyMessage: true,
+            showConfigActions: true,
+            fileName:
+                options.fileName ||
+                "WG.config"
+        }
+    );
+
+}
+);
+
+
+}
+
 function prompt(
 dialogTitle,
 inputValue = "",
@@ -878,6 +995,94 @@ close(
 );
 
 
+/*
+COPY / SAVE handlers for the config dialog.
+*/
+
+copyButton.addEventListener(
+"click",
+() => {
+
+    const text =
+        whatsNew.value ||
+        "";
+
+    if (
+        navigator.clipboard &&
+        navigator.clipboard.writeText
+    ) {
+
+        navigator.clipboard
+            .writeText(text)
+            .catch(
+                () => {
+
+                    fallbackCopy(text);
+
+                }
+            );
+
+        return;
+
+    }
+
+    fallbackCopy(text);
+
+}
+);
+
+saveButton.addEventListener(
+"click",
+() => {
+
+    const text =
+        whatsNew.value ||
+        "";
+
+    const name =
+        saveButton.dataset.fileName ||
+        "WG.config";
+
+    const blob =
+        new Blob(
+            [text],
+            {
+                type: "text/plain"
+            }
+        );
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+    const a =
+        document.createElement(
+            "a"
+        );
+
+    a.href = url;
+
+    a.download = name;
+
+    document.body.appendChild(
+        a
+    );
+
+    a.click();
+
+    document.body.removeChild(
+        a
+    );
+
+    URL.revokeObjectURL(
+        url
+    );
+
+}
+);
+
+
 }
 
 );
@@ -996,6 +1201,8 @@ return {
 
 
 alert,
+
+config,
 
 confirm,
 

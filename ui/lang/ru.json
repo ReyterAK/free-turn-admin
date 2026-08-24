@@ -333,5 +333,8 @@
 "wg.peer_created_text": "Пир создан, пара ключей сохранена. Конфиг клиента ниже (доступен также кнопкой WG.config):",
 "wg.config_title": "WG.config",
 "wg.col.actions": "Действия",
-"wg.config_btn": "WG.config"
+"wg.config_btn": "WG.config",
+"wg.col.client": "Клиент",
+"wg.copy": "Копировать",
+"wg.save_file": "Сохранить в файл"
 }

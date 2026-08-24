@@ -189,6 +189,7 @@ func (r *Router) wireguardStatus(w http.ResponseWriter, req *http.Request) {
 					if kp := store.FindByPublicKey(peers[i].PublicKey); kp != nil {
 						peers[i].HasKeypair = true
 						peers[i].KeypairClientID = kp.ClientID
+						peers[i].KeypairClient = clientCommentFor(kp.ClientID)
 						used[ipOf(peers[i].AllowedAddr)] = true
 					}
 					filtered = append(filtered, peers[i])
@@ -695,8 +696,10 @@ func (r *Router) wireguardPeerConfig(w http.ResponseWriter, req *http.Request) {
 	client := routeros.New(cfg.URL, cfg.User, cfg.Pass, 6*time.Second)
 
 	writeJSON(w, map[string]any{
-		"status": "ok",
-		"name":   kp.WGInterface + "-" + kp.Comment,
+		"status":         "ok",
+		"name":           kp.WGInterface + "-" + kp.Comment,
+		"client_id":      kp.ClientID,
+		"client_comment": clientCommentFor(kp.ClientID),
 		"config": buildClientConfig(
 			kp.PrivateKey,
 			kp.AllowedAddr,
@@ -704,6 +707,19 @@ func (r *Router) wireguardPeerConfig(w http.ResponseWriter, req *http.Request) {
 			backendEndpoint(),
 		),
 	})
+}
+
+// clientCommentFor resolves a client id to its comment.
+func clientCommentFor(id string) string {
+	if id == "" {
+		return ""
+	}
+	for _, c := range ListClients() {
+		if c["id"] == id {
+			return c["comment"]
+		}
+	}
+	return id
 }
 
 // wireguardSaveConfig stores the RouterOS connection settings.

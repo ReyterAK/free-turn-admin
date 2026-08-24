@@ -333,5 +333,8 @@
 "wg.peer_created_text": "Peer created, keypair stored. Client config below (also available via the WG.config button):",
 "wg.config_title": "WG.config",
 "wg.col.actions": "Actions",
-"wg.config_btn": "WG.config"
+"wg.config_btn": "WG.config",
+"wg.col.client": "Client",
+"wg.copy": "Copy",
+"wg.save_file": "Save to file"
 }
