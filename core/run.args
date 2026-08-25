@@ -1,9 +1,7 @@
 -listen
 0.0.0.0:55555
 -connect
-10.10.20.1:51820
--mode
-udp
+127.0.0.1:51820
 -obf-profile
 none
 -clients-file

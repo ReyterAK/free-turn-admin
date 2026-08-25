@@ -332,6 +332,8 @@
 "wg.iface_err_write": "Недостаточно прав на запись. Используйте пользователя с политикой write (user-rest-api-rw).",
 "wg.iface_created_title": "Интерфейс создан",
 "wg.iface_created_text": "Интерфейс %s создан на роутере.\nАдрес: %s\nПорт: %s\nПубличный ключ (для клиентских конфигов):\n%s",
+"wg.iface_backend_updated": "Backend-сервер обновлён автоматически",
+"wg.iface_restart_failed": "Внимание: сервер не перезапущен — перезапустите его вручную (Настройки сервера → Перезапустить).",
 "wg.delete_iface": "Удалить интерфейс",
 "wg.delete_confirm_title": "Удаление интерфейса",
 "wg.delete_confirm_text": "Удалить интерфейс %s?",

@@ -332,6 +332,8 @@
 "wg.iface_err_write": "Insufficient write rights. Use a user with the write policy (user-rest-api-rw).",
 "wg.iface_created_title": "Interface created",
 "wg.iface_created_text": "Interface %s created on the router.\nAddress: %s\nPort: %s\nPublic key (for client configs):\n%s",
+"wg.iface_backend_updated": "Backend server updated automatically",
+"wg.iface_restart_failed": "Warning: the server was not restarted — restart it manually (Server settings → Restart).",
 "wg.delete_iface": "Delete interface",
 "wg.delete_confirm_title": "Delete interface",
 "wg.delete_confirm_text": "Delete interface %s?",

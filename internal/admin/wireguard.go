@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"strconv"
@@ -397,7 +398,35 @@ func (r *Router) wireguardCreateInterface(w http.ResponseWriter, req *http.Reque
 		}
 	}
 
-	LogEvent("wireguard", "INTERFACE_CREATED", "WireGuard interface "+body.Name+" created")
+	// Backend обновляется АВТОМАТИЧЕСКИ: созданный интерфейс и есть
+	// Backend для сервера. Пишем -connect host:port в run.args и
+	// перезапускаем free-turn-server (новый адрес действует только
+	// после старта с новыми аргументами). При совпадении с текущим
+	// значением ничего не делаем (нет лишнего рестарта).
+	hostPort := hostOf(body.Address) + ":" + strconv.Itoa(body.ListenPort)
+	backendUpdated := false
+	restartOK := true
+	oldText := readText(RunArgsFile)
+	newText := strings.Join(setConnectArg(parseArgs(oldText), hostPort), "\n")
+	if newText != oldText {
+		if err := SaveRunArgs(newText); err != nil {
+			log.Printf("[wg] обновление -connect: %v", err)
+			LogEvent("wireguard", "BACKEND_UPDATE_FAILED", "could not write -connect "+hostPort+": "+err.Error())
+		} else {
+			backendUpdated = true
+			restartOK = RestartProxy()
+			if !restartOK {
+				LogEvent("wireguard", "BACKEND_RESTART_FAILED", "server restart after -connect "+hostPort+" failed")
+			} else {
+				log.Printf("[wg] интерфейс %s: Backend обновлён на %s, сервер перезапущен", body.Name, hostPort)
+			}
+		}
+	}
+	created["backend_updated"] = backendUpdated
+	created["backend"] = hostPort
+	created["restart_ok"] = restartOK
+
+	LogEvent("wireguard", "INTERFACE_CREATED", "WireGuard interface "+body.Name+" created, backend "+hostPort)
 	writeJSON(w, map[string]any{"status": "ok", "interface": created})
 }
 

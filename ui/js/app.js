@@ -112,11 +112,12 @@ const App = {
 
 
         //
-        // default tab
+        // default tab: WireGuard — first-run onboarding and the
+        // live server/peer picture (клиенты — вторая по частоте)
         //
 
         this.showTab(
-            "clients"
+            "wireguard"
         );
 
 

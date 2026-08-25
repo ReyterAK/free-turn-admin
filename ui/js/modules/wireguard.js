@@ -433,13 +433,38 @@ async createInterface() {
 
             if (window.Dialog) {
 
-                Dialog.alert(
-                    safeT("wg.iface_created_title"),
+                let createdText =
                     safeT("wg.iface_created_text")
                         .replace("%s", created.name || name)
                         .replace("%s", created.address || address)
                         .replace("%s", String(created["listen-port"] || port))
-                        .replace("%s", created["public-key"] || "")
+                        .replace("%s", created["public-key"] || "");
+
+                // Backend обновлён автоматически (созданный
+                // интерфейс = Backend); предупреждаем, если
+                // перезапуск сервера не удался.
+                if (created.backend_updated) {
+
+                    createdText +=
+                        "\n\n" +
+                        safeT("wg.iface_backend_updated") +
+                        ": " +
+                        (created.backend || "");
+
+                }
+
+                if (created.backend_updated &&
+                    created.restart_ok === false) {
+
+                    createdText +=
+                        "\n" +
+                        safeT("wg.iface_restart_failed");
+
+                }
+
+                Dialog.alert(
+                    safeT("wg.iface_created_title"),
+                    createdText
                 );
 
             }

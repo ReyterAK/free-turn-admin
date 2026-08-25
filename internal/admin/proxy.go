@@ -91,6 +91,28 @@ func runArgsList() []string {
 	return filtered
 }
 
+// setConnectArg returns args with the -connect flag set to hostPort:
+// an existing -connect pair is replaced in place, otherwise a new
+// pair is appended. Used when a WG interface is created via the
+// panel — the new interface IS the Backend.
+func setConnectArg(args []string, hostPort string) []string {
+	out := make([]string, 0, len(args)+2)
+	replaced := false
+	for i := 0; i < len(args); i++ {
+		if args[i] == "-connect" {
+			out = append(out, "-connect", hostPort)
+			i++ // skip the old value
+			replaced = true
+			continue
+		}
+		out = append(out, args[i])
+	}
+	if !replaced {
+		out = append(out, "-connect", hostPort)
+	}
+	return out
+}
+
 func proxyEnv() []string {
 	env := os.Environ()
 	env = append(env, "CLIENTS_FILE="+ClientsFile)
