@@ -965,26 +965,12 @@ saveButton.addEventListener(
 "click",
 () => {
 
-    // Диагностика: показываем каждый шаг в консоли
-    // и выставляем наблюдаемый маркер (для headless-проверки).
-    console.log(
-        "[Dialog] save clicked"
-    );
-
-    document.body.dataset.wgSaveFired =
-        String(Date.now());
-
     // Сохраняем ровно тот текст, что в окне — включая
     // свежие правки администратора. Клиентский blob-файл,
     // сервер не участвует.
     const text =
         whatsNew.value ||
         "";
-
-    console.log(
-        "[Dialog] text length:",
-        text.length
-    );
 
     const name =
         saveButton.dataset.fileName ||
@@ -1002,11 +988,6 @@ saveButton.addEventListener(
         URL.createObjectURL(
             blob
         );
-
-    console.log(
-        "[Dialog] blob url:",
-        blobUrl
-    );
 
     const a =
         document.createElement(
@@ -1029,15 +1010,7 @@ saveButton.addEventListener(
     setTimeout(
         () => {
 
-            console.log(
-                "[Dialog] anchor click"
-            );
-
             a.click();
-
-            console.log(
-                "[Dialog] clicked, download should start"
-            );
 
         },
         0
