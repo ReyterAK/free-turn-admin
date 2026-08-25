@@ -19,6 +19,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -772,6 +773,160 @@ func (r *Router) wireguardImportPeer(w http.ResponseWriter, req *http.Request) {
 		"allowed_address": found.AllowedAddr,
 		"comment":         found.Comment,
 	})
+}
+
+// bindPeerRequest is the payload of POST /api/wireguard/bind.
+type bindPeerRequest struct {
+	ClientID  string `json:"client_id"`
+	PublicKey string `json:"public_key"`
+}
+
+// clientExists reports whether a client with the id exists.
+func clientExists(id string) bool {
+	if id == "" {
+		return false
+	}
+	for _, c := range ListClients() {
+		if c["id"] == id {
+			return true
+		}
+	}
+	return false
+}
+
+// wireguardBindPeer attaches a panel-managed peer keypair to a
+// client (1:1). A peer may be re-bound to another client; a client
+// already bound to another peer is a conflict. Requires "write".
+func (r *Router) wireguardBindPeer(w http.ResponseWriter, req *http.Request) {
+	var body bindPeerRequest
+	if req.Body != nil {
+		_ = json.NewDecoder(req.Body).Decode(&body)
+	}
+	body.ClientID = strings.TrimSpace(body.ClientID)
+	body.PublicKey = strings.TrimSpace(body.PublicKey)
+
+	if body.ClientID == "" || body.PublicKey == "" {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "client_id_and_public_key_required",
+		})
+		return
+	}
+	if !clientExists(body.ClientID) {
+		writeJSONStatus(w, http.StatusNotFound, map[string]any{
+			"status": "error",
+			"error":  "client_not_found",
+		})
+		return
+	}
+
+	store, err := LoadWGStore()
+	if err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+	if err := store.BindClient(body.ClientID, body.PublicKey); err != nil {
+		switch {
+		case errors.Is(err, ErrClientAlreadyBound):
+			writeJSONStatus(w, http.StatusConflict, map[string]any{
+				"status": "error",
+				"error":  "client_already_bound",
+			})
+		case errors.Is(err, ErrPeerKeypairNotFound):
+			writeJSONStatus(w, http.StatusNotFound, map[string]any{
+				"status": "error",
+				"error":  "peer_keypair_not_found",
+			})
+		default:
+			writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+				"status": "error",
+				"error":  err.Error(),
+			})
+		}
+		return
+	}
+	if err := store.Save(); err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	LogEvent("wireguard", "PEER_BOUND", "client "+body.ClientID[:8]+" → peer "+body.PublicKey[:12])
+	writeJSON(w, map[string]any{"status": "ok", "public_key": body.PublicKey, "client_id": body.ClientID})
+}
+
+// wireguardUnbindPeer clears the client binding of a peer keypair.
+func (r *Router) wireguardUnbindPeer(w http.ResponseWriter, req *http.Request) {
+	var body bindPeerRequest
+	if req.Body != nil {
+		_ = json.NewDecoder(req.Body).Decode(&body)
+	}
+	pub := strings.TrimSpace(body.PublicKey)
+	if pub == "" {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "public_key_required",
+		})
+		return
+	}
+
+	store, err := LoadWGStore()
+	if err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+	if err := store.UnbindClient(pub); err != nil {
+		writeJSONStatus(w, http.StatusNotFound, map[string]any{
+			"status": "error",
+			"error":  "peer_keypair_not_found",
+		})
+		return
+	}
+	if err := store.Save(); err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	LogEvent("wireguard", "PEER_UNBOUND", "peer "+pub[:12])
+	writeJSON(w, map[string]any{"status": "ok", "public_key": pub})
+}
+
+// wireguardBindings lists the panel-managed keypairs (public_key,
+// interface, comment, allowed address, client binding) for the
+// clients-table bind UI. Cheap: reads wg.json only, no router.
+func (r *Router) wireguardBindings(w http.ResponseWriter, req *http.Request) {
+	store, err := LoadWGStore()
+	if err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+	out := make([]map[string]any, 0, len(store.Keypairs))
+	for i := range store.Keypairs {
+		kp := &store.Keypairs[i]
+		out = append(out, map[string]any{
+			"public_key":      kp.PublicKey,
+			"wg_interface":    kp.WGInterface,
+			"comment":         kp.Comment,
+			"allowed_address": kp.AllowedAddr,
+			"client_id":       kp.ClientID,
+			"client_comment":  clientCommentFor(kp.ClientID),
+		})
+	}
+	writeJSON(w, map[string]any{"status": "ok", "keypairs": out})
 }
 
 // serverPublicKeyFor returns the public key of a WG interface.

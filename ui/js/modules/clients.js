@@ -7,6 +7,43 @@ const ClientsModule = {
 
 //
 // =====================================================
+// Data
+// =====================================================
+//
+
+// bindings — panel-managed WG keypairs with client bindings
+// (from GET /api/wireguard/bindings), for the WireGuard column.
+bindings: [],
+
+async loadBindings() {
+
+    try {
+
+        const data =
+            await ApiClient.get(
+                "/api/wireguard/bindings"
+            );
+
+        this.bindings =
+            (data && data.keypairs) ||
+            [];
+
+    }
+    catch (e) {
+
+        this.bindings = [];
+
+        console.error(
+            "[ClientsModule] bindings",
+            e
+        );
+
+    }
+
+},
+
+//
+// =====================================================
 // Lifecycle
 // =====================================================
 //
@@ -62,6 +99,8 @@ async refresh() {
 await ClientStore.refresh();
 
 await this.refreshAuthStatus();
+
+await this.loadBindings();
 
 this.render();
 
@@ -158,6 +197,21 @@ render() {
 
 renderRow(client) {
 
+    const kp =
+        this.bindings.find(
+            k => k.client_id === client.id
+        );
+
+    const bound =
+        kp
+            ? (kp.comment ||
+               kp.public_key.slice(0, 12)) +
+              " · " +
+              kp.wg_interface +
+              " · " +
+              kp.allowed_address
+            : "";
+
 
 return `
 
@@ -171,6 +225,28 @@ return `
 
 <td>
     ${client.comment || ""}
+</td>
+
+<td>
+
+    ${bound
+        ? `<span class="wg-binding">${bound}</span>`
+        : safeT("clients.no_binding")}
+
+    <br>
+
+    <button
+    onclick="ClientsModule.bindPeer('${client.id}')">
+    ${bound
+        ? safeT("clients.change_btn")
+        : safeT("clients.bind_btn")} </button>
+
+    ${bound
+        ? `<button
+    onclick="ClientsModule.unbindPeer('${client.id}')">
+    ${safeT("clients.unbind_btn")} </button>`
+        : ""}
+
 </td>
 
 <td>
@@ -662,6 +738,230 @@ try {
 
 }
 
+
+},
+
+//
+// =====================================================
+// WireGuard binding (peer ↔ client, 1:1)
+// =====================================================
+//
+
+async bindPeer(id) {
+
+    const bindable =
+        this.bindings.filter(
+            kp =>
+                !kp.client_id ||
+                kp.client_id === id
+        );
+
+
+    if (!bindable.length) {
+
+        Dialog.alert(
+            safeT("dialog.title_error"),
+            safeT("clients.no_peers_to_bind")
+        );
+
+
+        return;
+
+    }
+
+
+    const options =
+        bindable.map(
+            kp => ({
+
+                value: kp.public_key,
+
+                label:
+                    (kp.comment ||
+                     kp.public_key.slice(0, 12)) +
+                    " · " +
+                    kp.wg_interface +
+                    " · " +
+                    kp.allowed_address +
+                    (kp.client_id
+                        ? " (" +
+                          safeT("clients.bound_other") +
+                          ")"
+                        : "")
+
+            })
+        );
+
+
+    const pub =
+        await Dialog.select(
+            safeT("clients.bind_title"),
+            safeT("clients.bind_hint"),
+            {
+                selectOptions: options
+            }
+        );
+
+
+    if (!pub)
+        return; // cancelled
+
+
+    try {
+
+        const resp =
+            await fetch(
+                "/api/wireguard/bind",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        client_id: id,
+                        public_key: pub
+                    })
+                }
+            );
+
+
+        const data =
+            await resp.json();
+
+
+        if (data.status !== "ok") {
+
+            this.mapBindError(data);
+
+            return;
+
+        }
+
+
+        await Dialog.success(
+            safeT("dialog.title_done"),
+            safeT("clients.bind_success")
+        );
+
+
+        await this.refresh();
+
+    }
+    catch (error) {
+
+        console.error(
+            "[ClientsModule] bind failed",
+            error
+        );
+
+
+        await Dialog.alert(
+            safeT("dialog.title_error"),
+            error?.message ||
+            safeT("clients.bind_error_message")
+        );
+
+    }
+
+},
+
+async unbindPeer(id) {
+
+    const kp =
+        this.bindings.find(
+            k => k.client_id === id
+        );
+
+
+    if (!kp)
+        return;
+
+
+    const ok =
+        await Dialog.confirm(
+            safeT("clients.unbind_title"),
+            safeT("clients.unbind_confirm")
+        );
+
+
+    if (!ok)
+        return;
+
+
+    try {
+
+        const resp =
+            await fetch(
+                "/api/wireguard/unbind",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        public_key: kp.public_key
+                    })
+                }
+            );
+
+
+        const data =
+            await resp.json();
+
+
+        if (data.status !== "ok") {
+
+            this.mapBindError(data);
+
+            return;
+
+        }
+
+
+        await Dialog.success(
+            safeT("dialog.title_done"),
+            safeT("clients.unbind_success")
+        );
+
+
+        await this.refresh();
+
+    }
+    catch (error) {
+
+        console.error(
+            "[ClientsModule] unbind failed",
+            error
+        );
+
+
+        await Dialog.alert(
+            safeT("dialog.title_error"),
+            error?.message ||
+            safeT("clients.bind_error_message")
+        );
+
+    }
+
+},
+
+mapBindError(data) {
+
+    const map = {
+        client_already_bound: "wg.peer_err_bound",
+        peer_keypair_not_found: "wg.error.peer_keypair_not_found",
+        client_not_found: "wg.error.client_not_found"
+    };
+
+
+    Dialog.alert(
+        safeT("dialog.title_error"),
+        map[data.error]
+            ? safeT(map[data.error])
+            : (data.error || safeT("clients.bind_error_message"))
+    );
 
 },
 

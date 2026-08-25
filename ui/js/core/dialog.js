@@ -40,6 +40,11 @@ document.getElementById(
 "dialog-modal-input"
 );
 
+const selectEl =
+document.getElementById(
+"dialog-modal-select"
+);
+
 const saveButton =
 document.getElementById(
 "dialog-modal-save"
@@ -273,7 +278,97 @@ actionButton.classList.remove(
 }
 
 /*
-VALIDATION ERROR
+SELECT
+
+A dropdown choice (e.g. which peer to bind to a client).
+options.selectOptions: [{value, label}] or [string].
+options.selected: index of the preselected option.
+*/
+
+selectEl.innerHTML =
+"";
+
+selectEl.classList.add(
+    "hidden"
+);
+
+if (
+type === "select"
+) {
+
+
+const opts =
+    options.selectOptions ||
+    [];
+
+
+opts.forEach(
+    item => {
+
+
+        const opt =
+            document.createElement(
+                "option"
+            );
+
+
+        if (
+            typeof item ===
+            "object"
+        ) {
+
+            opt.value =
+                item.value;
+
+            opt.textContent =
+                item.label;
+
+        }
+        else {
+
+            opt.value =
+                item;
+
+            opt.textContent =
+                item;
+
+        }
+
+
+        selectEl.appendChild(
+            opt
+        );
+
+    }
+);
+
+
+selectEl.selectedIndex =
+    typeof options.selected ===
+    "number"
+        ? options.selected
+        : 0;
+
+
+selectEl.classList.remove(
+    "hidden"
+);
+
+
+cancelButton.classList.remove(
+    "hidden"
+);
+
+
+actionButton.classList.remove(
+    "hidden"
+);
+
+
+}
+
+/*
+ALERT / SUCCESS
 */
 
 if (
@@ -377,6 +472,10 @@ modal.classList.add(
 );
 
 input.classList.add(
+"hidden"
+);
+
+selectEl.classList.add(
 "hidden"
 );
 
@@ -682,6 +781,44 @@ resolve => {
 }
 
 /*
+SELECT
+
+Dropdown choice (e.g. which peer to bind to a client).
+options: {selectOptions: [{value,label}] or [string],
+selected?: index}. Resolves with the chosen value or
+null on cancel.
+*/
+
+function select(
+dialogTitle,
+dialogMessage = "",
+options = {}
+) {
+
+return new Promise(
+resolve => {
+
+
+    resolver =
+        resolve;
+
+
+    open(
+        "select",
+        dialogTitle,
+        dialogMessage,
+        "",
+        options
+    );
+
+}
+
+
+);
+
+}
+
+/*
 SHOW VALIDATION ERROR
 
 */
@@ -898,6 +1035,25 @@ if (
         value
     );
 
+
+    return;
+
+}
+
+
+/*
+   ==========================================
+   SELECT
+   ==========================================
+*/
+
+if (
+    currentType === "select"
+) {
+
+    close(
+        selectEl.value
+    );
 
     return;
 
@@ -1137,6 +1293,8 @@ alert,
 config,
 
 confirm,
+
+select,
 
 success,
 

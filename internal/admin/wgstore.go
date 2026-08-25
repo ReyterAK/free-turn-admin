@@ -16,6 +16,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"net"
 	"os"
 	"path/filepath"
@@ -93,6 +94,44 @@ func (s *WGStore) FindByClient(clientID string) *WGKeypair {
 			return &s.Keypairs[i]
 		}
 	}
+	return nil
+}
+
+// Sentinel errors for client↔peer binding (1:1).
+var (
+	// ErrPeerKeypairNotFound — no panel-managed keypair for the peer.
+	ErrPeerKeypairNotFound = errors.New("peer keypair not found")
+	// ErrClientAlreadyBound — the client is bound to another peer.
+	ErrClientAlreadyBound = errors.New("client already bound to another peer")
+)
+
+// BindClient attaches the keypair with the given public key to a
+// client (1:1). Re-binding a peer that is already bound to another
+// client is allowed (the "сменить" flow); binding a client that is
+// already bound to ANOTHER peer is a conflict. Save() is NOT called.
+func (s *WGStore) BindClient(clientID, pub string) error {
+	if clientID == "" || pub == "" {
+		return errors.New("client_id and public_key are required")
+	}
+	kp := s.FindByPublicKey(pub)
+	if kp == nil {
+		return ErrPeerKeypairNotFound
+	}
+	if other := s.FindByClient(clientID); other != nil && other.PublicKey != pub {
+		return ErrClientAlreadyBound
+	}
+	kp.ClientID = clientID
+	return nil
+}
+
+// UnbindClient clears the client binding of the keypair with the
+// given public key. Save() is NOT called.
+func (s *WGStore) UnbindClient(pub string) error {
+	kp := s.FindByPublicKey(pub)
+	if kp == nil {
+		return ErrPeerKeypairNotFound
+	}
+	kp.ClientID = ""
 	return nil
 }
 
