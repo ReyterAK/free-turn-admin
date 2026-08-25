@@ -171,10 +171,13 @@ func blanketRule(r routeros.FilterRule) bool {
 		r.ConnectionState == ""
 }
 
-// ruleMatchesSubnet reports whether an accept/drop rule touches the
-// WG subnet: unconstrained, address covers the subnet, or the rule
-// is scoped to the WG interface itself.
+// ruleMatchesSubnet reports whether a rule touches the WG subnet:
+// unconstrained (blanket) rules cover everything, address rules
+// cover the subnet, or the rule is scoped to the WG interface.
 func ruleMatchesSubnet(r routeros.FilterRule, subnet, iface string) bool {
+	if blanketRule(r) {
+		return true // правило без ограничений покрывает и подсеть
+	}
 	if r.SrcAddress != "" && addrCovers(r.SrcAddress, subnet) {
 		return true
 	}
@@ -327,7 +330,7 @@ func runRoutingChecks(
 						" protocol=udp dst-port=" + strconv.Itoa(listenPort) +
 						" action=dst-nat to-addresses=" + containerIPs[0] +
 						" to-ports=" + strconv.Itoa(listenPort) +
-						" comment=\"FreeTurn " + strconv.Itoa(listenPort) + "→контейнер\"",
+						" comment=\"free-turn-external-port-forward\"",
 				}))
 		}
 	}
@@ -369,7 +372,7 @@ func runRoutingChecks(
 			"routing.wg_route", "routing.wg_route_missing", []string{subnet},
 			[]string{
 				"/ip address add address=" + ifaceIPs[0] +
-					" interface=" + ifaceName + " comment=\"FreeTurn WG\"",
+					" interface=" + ifaceName + " comment=\"free-turn-wg-address\"",
 			}))
 	}
 
@@ -393,23 +396,29 @@ func runRoutingChecks(
 			"routing.wg_srcnat", "routing.wg_srcnat_missing", []string{subnet},
 			[]string{
 				"/ip firewall nat add chain=srcnat src-address=" + subnet +
-					" action=masquerade comment=\"FreeTurn WG " + ifaceName + "\"",
+					" action=masquerade comment=\"free-turn-wg-masquerade\"",
 			}))
 	}
 
 	// B4. firewall forward: an accept for the subnet BEFORE any
-	// blanket drop; otherwise recommend inserting before the drop.
+	// blocking rule (blanket or subnet-scoped drop/reject);
+	// otherwise recommend inserting before the blanket drop, or
+	// removing the subnet-scoped drop.
 	forwardOK := false
-	dropID := ""
+	blockID := ""
+	blockBlanket := false
 	for _, r := range filter {
 		if r.Chain != "forward" || r.Disabled {
 			continue
 		}
-		if r.Action == "drop" && blanketRule(r) {
-			dropID = r.ID
+		if (r.Action == "drop" || r.Action == "reject") &&
+			(blanketRule(r) || ruleMatchesSubnet(r, subnet, ifaceName)) {
+			blockID = r.ID
+			blockBlanket = blanketRule(r)
 			break
 		}
-		if r.Action == "accept" && ruleMatchesSubnet(r, subnet, ifaceName) {
+		if r.Action == "accept" &&
+			(blanketRule(r) || ruleMatchesSubnet(r, subnet, ifaceName)) {
 			forwardOK = true
 			break
 		}
@@ -417,15 +426,19 @@ func runRoutingChecks(
 	if forwardOK {
 		out = append(out, check("wg_forward", "wg", "ok",
 			"routing.wg_forward", "routing.wg_forward_ok", []string{subnet}, nil))
-	} else if dropID != "" {
+	} else if blockID != "" && blockBlanket {
 		out = append(out, check("wg_forward", "wg", "warning",
-			"routing.wg_forward", "routing.wg_forward_before_drop", []string{subnet, dropID},
+			"routing.wg_forward", "routing.wg_forward_before_drop", []string{subnet, blockID},
 			[]string{
 				"/ip firewall filter add chain=forward action=accept src-address=" + subnet +
-					" place-before=" + dropID + " comment=\"FreeTurn WG " + ifaceName + "\"",
+					" place-before=" + blockID + " comment=\"free-turn-wg-fwd-accept\"",
 				"/ip firewall filter add chain=forward action=accept dst-address=" + subnet +
-					" place-before=" + dropID + " comment=\"FreeTurn WG " + ifaceName + "\"",
+					" place-before=" + blockID + " comment=\"free-turn-wg-fwd-accept\"",
 			}))
+	} else if blockID != "" {
+		out = append(out, check("wg_forward", "wg", "warning",
+			"routing.wg_forward", "routing.wg_forward_subnet_blocked", []string{subnet, blockID},
+			[]string{"/ip firewall filter remove " + blockID}))
 	} else {
 		out = append(out, check("wg_forward", "wg", "info",
 			"routing.wg_forward", "routing.wg_forward_default", []string{subnet}, nil))

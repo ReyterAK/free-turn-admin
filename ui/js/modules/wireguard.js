@@ -266,25 +266,48 @@ showCreateForm(prefillPort) {
 
     this.clearCreateMsg();
 
-    if (!visible && prefillPort && this.backend) {
+    if (!visible) {
 
-        const port =
+        // Умолчания с префиксом free-turn- (админ вправе изменить):
+        // имя интерфейса и комментарий-маркер, по которому всё
+        // наше опознаётся в WinBox и убирается при удалении.
+        const name =
             document.getElementById(
-                "wg-iface-port"
+                "wg-iface-name"
             );
 
-        if (port)
-            port.value = this.backend.port;
+        if (name && !name.value)
+            name.value = "free-turn-wireguard";
 
-        const addr =
+        const comment =
             document.getElementById(
-                "wg-iface-address"
+                "wg-iface-comment"
             );
 
-        if (addr)
-            addr.value =
-                this.backend.host +
-                "/24";
+        if (comment && !comment.value)
+            comment.value = "free-turn-backend";
+
+        if (prefillPort && this.backend) {
+
+            const port =
+                document.getElementById(
+                    "wg-iface-port"
+                );
+
+            if (port)
+                port.value = this.backend.port;
+
+            const addr =
+                document.getElementById(
+                    "wg-iface-address"
+                );
+
+            if (addr)
+                addr.value =
+                    this.backend.host +
+                    "/24";
+
+        }
 
     }
 
@@ -575,6 +598,46 @@ async showPeerForm() {
 
     if (visible)
         return;
+
+    // Комментарий по умолчанию: free-turn-peerNN (NN — следующий
+    // номер среди существующих пиров интерфейса).
+    const comment =
+        document.getElementById(
+            "wg-peer-comment"
+        );
+
+    if (comment && !comment.value) {
+
+        let max = 0;
+
+        const peers =
+            (this.lastData && this.lastData.peers) ||
+            [];
+
+        for (const p of peers) {
+
+            const m =
+                /^free-turn-peer(\d+)$/.exec(
+                    (p.comment || "").trim()
+                );
+
+            if (m) {
+
+                const n =
+                    parseInt(m[1], 10);
+
+                if (n > max)
+                    max = n;
+
+            }
+
+        }
+
+        comment.value =
+            "free-turn-peer" +
+            (max + 1);
+
+    }
 
     // подсказка адреса из пула
     const addr =

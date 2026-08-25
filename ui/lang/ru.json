@@ -412,6 +412,7 @@
 "routing.wg_forward": "Firewall: forward для подсети WG",
 "routing.wg_forward_ok": "трафик %s разрешён (accept до блокирующего правила)",
 "routing.wg_forward_before_drop": "нет правила accept для %s перед блокирующим правилом %s — трафик подсети отбрасывается. Правила вставляются ПЕРЕД drop.",
+"routing.wg_forward_subnet_blocked": "правило %s блокирует подсеть %s (drop/reject по адресу) — трафик подсети отбрасывается. Удалите правило или отредактируйте его.",
 "routing.wg_forward_default": "нет явного accept для %s и нет финального drop-all — трафик, вероятно, проходит (default-action цепочки).",
 "routing.wg_input": "Firewall: input (порт WG)",
 "routing.wg_input_ok": "порт %s не блокируется явными правилами",

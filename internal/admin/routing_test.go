@@ -202,3 +202,41 @@ func TestRoutingPortForwardMatch(t *testing.T) {
 		t.Errorf("port_forward = %+v, want ok", c)
 	}
 }
+
+func TestRoutingChecksSubnetDrop(t *testing.T) {
+	routes, addrs, nat, filter := sampleRoutingData()
+	// блокирующее правило, скоупленное на подсеть WG — движок
+	// должен его флагнуть (warning с командой remove)
+	filter = append([]routeros.FilterRule{
+		{ID: "*T1", Chain: "forward", Action: "drop", SrcAddress: "10.10.30.0/24"},
+	}, filter...)
+	checks := runRoutingChecks(
+		"Free_Turn_NEW_WG", []string{"10.10.30.1/24"}, 25083,
+		[]string{"192.168.254.15"}, 55555, true, "eth0",
+		routes, addrs, nat, filter,
+	)
+	c := findCheck(checks, "wg_forward")
+	if c == nil || c.Status != "warning" {
+		t.Fatalf("wg_forward = %+v, want warning", c)
+	}
+	if len(c.Commands) != 1 || !strings.Contains(c.Commands[0], "remove *T1") {
+		t.Errorf("commands = %v, want [remove *T1]", c.Commands)
+	}
+}
+
+func TestRoutingChecksBlanketAccept(t *testing.T) {
+	routes, addrs, nat, _ := sampleRoutingData()
+	filter := []routeros.FilterRule{
+		{ID: "*X1", Chain: "forward", Action: "accept"}, // без ограничений
+		{ID: "*X2", Chain: "forward", Action: "drop"},
+	}
+	checks := runRoutingChecks(
+		"Free_Turn_NEW_WG", []string{"10.10.30.1/24"}, 25083,
+		[]string{"192.168.254.15"}, 55555, true, "eth0",
+		routes, addrs, nat, filter,
+	)
+	c := findCheck(checks, "wg_forward")
+	if c == nil || c.Status != "ok" {
+		t.Fatalf("wg_forward = %+v, want ok (blanket accept covers the subnet)", c)
+	}
+}
