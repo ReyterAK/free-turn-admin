@@ -1791,9 +1791,40 @@ actionsCell(peer) {
             "td"
         );
 
+    const pub =
+        peer["public-key"] || peer[".id"];
+
     if (peer.has_keypair !== true) {
 
-        cell.textContent = "";
+        // No panel-managed key yet — offer importing the EXISTING
+        // client private key (peer keys generated outside the panel).
+        const btn =
+            document.createElement(
+                "button"
+            );
+
+        btn.type = "button";
+
+        btn.className = "wg-peer-config-btn";
+
+        btn.textContent =
+            safeT("wg.import_key_btn");
+
+        btn.addEventListener(
+            "click",
+            () => {
+
+                this.importPeerKey(
+                    pub,
+                    peer.name || pub.slice(0, 12)
+                );
+
+            }
+        );
+
+        cell.appendChild(
+            btn
+        );
 
         return cell;
 
@@ -1810,9 +1841,6 @@ actionsCell(peer) {
 
     btn.textContent =
         safeT("wg.config_btn");
-
-    const pub =
-        peer["public-key"] || peer[".id"];
 
     btn.addEventListener(
         "click",
@@ -1831,6 +1859,142 @@ actionsCell(peer) {
     );
 
     return cell;
+
+},
+
+// importPeerKey asks the admin for the existing client private key
+// and imports it into the panel (POST /api/wireguard/peer/import).
+// The public key is derived server-side and must match a router
+// peer; afterwards the WG.config button appears for the peer.
+async importPeerKey(publicKey, name) {
+
+    if (!window.Dialog || !Dialog.prompt) {
+
+        this.showMsg(
+            safeT("wg.import_key_hint"),
+            "error"
+        );
+
+        return;
+
+    }
+
+    const value =
+        await Dialog.prompt(
+            safeT("wg.import_key_title") +
+            " — " +
+            name,
+            "",
+            safeT("wg.import_key_hint"),
+            (v) => {
+
+                const s =
+                    (v || "").trim();
+
+                if (
+                    s.length < 40 ||
+                    s.length > 48
+                ) {
+
+                    return safeT(
+                        "wg.import_key_format"
+                    );
+
+                }
+
+                return true;
+
+            }
+        );
+
+    if (!value)
+        return; // cancelled
+
+    try {
+
+        const resp =
+            await fetch(
+                "/api/wireguard/peer/import",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        private_key: value.trim()
+                    })
+                }
+            );
+
+        const data =
+            await resp.json();
+
+        if (data.status !== "ok") {
+
+            this.mapImportError(data);
+
+            return;
+
+        }
+
+        this.showMsg(
+            safeT("wg.import_success") +
+            " — " +
+            name,
+            "ok"
+        );
+
+        this.refresh();
+
+    }
+    catch (error) {
+
+        console.error(
+            "[WireGuardModule] import failed",
+            error
+        );
+
+        this.showMsg(
+            String(error),
+            "error"
+        );
+
+    }
+
+},
+
+mapImportError(data) {
+
+    if (
+        data.error &&
+        typeof data.error === "object"
+    ) {
+
+        // classifyRouterOSError (auth/permission/unreachable)
+        this.showMsg(
+            safeT("wg.err_unreachable") +
+            " " +
+            (data.error.detail || ""),
+            "error"
+        );
+
+        return;
+
+    }
+
+    const map = {
+        invalid_private_key: "wg.error.invalid_private_key",
+        peer_not_found: "wg.error.peer_not_found",
+        keypair_exists: "wg.error.keypair_exists"
+    };
+
+    this.showMsg(
+        map[data.error]
+            ? safeT(map[data.error])
+            : (data.error || safeT("wg.save_error")),
+        "error"
+    );
 
 },
 

@@ -338,5 +338,13 @@
 "wg.copy": "Copy",
 "wg.save_file": "Save to file",
 "wg.dns": "Client DNS",
-"wg.dns_err": "Client DNS must be an IP address (e.g. 1.1.1.1) and cannot be empty."
+"wg.dns_err": "Client DNS must be an IP address (e.g. 1.1.1.1) and cannot be empty.",
+"wg.import_key_btn": "Import key",
+"wg.import_key_title": "Import private key",
+"wg.import_key_hint": "Paste the PrivateKey from an existing WG config (base64, 44 chars). The peer's public key on the router must match the one derived from this key.",
+"wg.import_key_format": "Does not look like a WireGuard private key: expected a base64 string (44 chars, usually ending with =).",
+"wg.import_success": "Key imported",
+"wg.error.invalid_private_key": "Invalid private key (expected base64, 32 bytes).",
+"wg.error.peer_not_found": "No router peer matches this public key. Check that the key belongs to a peer of this interface.",
+"wg.error.keypair_exists": "This peer already has a key — no import needed."
 }

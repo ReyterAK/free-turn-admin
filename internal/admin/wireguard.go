@@ -15,7 +15,11 @@
 package admin
 
 import (
+	"crypto/ecdh"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	"strconv"
@@ -640,6 +644,133 @@ func (r *Router) wireguardCreatePeer(w http.ResponseWriter, req *http.Request) {
 			backendEndpoint(),
 			cfg.ClientDNS,
 		),
+	})
+}
+
+// importPeerRequest is the payload of POST /api/wireguard/peer/import.
+type importPeerRequest struct {
+	PrivateKey string `json:"private_key"`
+}
+
+// parsePrivateKey validates a WireGuard private key (base64 std,
+// 32 bytes) and returns the DERIVED public key (base64 std) — the
+// router peer is matched by it.
+func parsePrivateKey(s string) (string, error) {
+	raw, err := base64.StdEncoding.DecodeString(strings.TrimSpace(s))
+	if err != nil {
+		return "", fmt.Errorf("base64: %w", err)
+	}
+	if len(raw) != 32 {
+		return "", fmt.Errorf("длина %d байт, ожидается 32", len(raw))
+	}
+	priv, err := ecdh.X25519().NewPrivateKey(raw)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(priv.PublicKey().Bytes()), nil
+}
+
+// wireguardImportPeer imports an EXISTING client private key for a
+// router peer (matched by the derived public key). Lets the panel
+// re-issue WG.config for peers whose keys were generated outside
+// the panel (imported from another tool, or recovered from a saved
+// config). Requires the "write" policy.
+func (r *Router) wireguardImportPeer(w http.ResponseWriter, req *http.Request) {
+	cfg, err := LoadRouterOSConfig()
+	if err != nil || cfg.URL == "" {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "not_configured",
+		})
+		return
+	}
+
+	var body importPeerRequest
+	if req.Body != nil {
+		_ = json.NewDecoder(req.Body).Decode(&body)
+	}
+	pub, err := parsePrivateKey(body.PrivateKey)
+	if err != nil {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "invalid_private_key",
+		})
+		return
+	}
+
+	store, err := LoadWGStore()
+	if err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+	if store.FindByPublicKey(pub) != nil {
+		writeJSONStatus(w, http.StatusConflict, map[string]any{
+			"status": "error",
+			"error":  "keypair_exists",
+		})
+		return
+	}
+
+	client := routeros.New(cfg.URL, cfg.User, cfg.Pass, 6*time.Second)
+	peers, err := client.ListPeers()
+	if err != nil {
+		writeJSONStatus(w, http.StatusBadGateway, map[string]any{
+			"status": "error",
+			"error":  classifyRouterOSError(err),
+		})
+		return
+	}
+	var found *routeros.Peer
+	for i := range peers {
+		if peers[i].PublicKey == pub {
+			found = &peers[i]
+			break
+		}
+	}
+	if found == nil {
+		writeJSONStatus(w, http.StatusNotFound, map[string]any{
+			"status": "error",
+			"error":  "peer_not_found",
+		})
+		return
+	}
+
+	id := make([]byte, 16)
+	if _, err := rand.Read(id); err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+	kp := &WGKeypair{
+		ID:          base64.RawURLEncoding.EncodeToString(id),
+		WGInterface: found.Interface,
+		PublicKey:   pub,
+		PrivateKey:  strings.TrimSpace(body.PrivateKey),
+		AllowedAddr: found.AllowedAddr,
+		Comment:     found.Comment,
+		CreatedAt:   time.Now().Unix(),
+	}
+	store.Keypairs = append(store.Keypairs, *kp)
+	if err := store.Save(); err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	LogEvent("wireguard", "KEY_IMPORTED", "imported key for "+pub[:12]+" on "+found.Interface)
+	writeJSON(w, map[string]any{
+		"status":          "ok",
+		"public_key":      pub,
+		"wg_interface":    found.Interface,
+		"allowed_address": found.AllowedAddr,
+		"comment":         found.Comment,
 	})
 }
 
