@@ -1201,6 +1201,16 @@ async refresh() {
 
         }
 
+        // Держим таблицу «Клиенты» в синхроне: привязки/ключи
+        // меняются при удалении, ротации, импорте или создании пира.
+        if (window.ClientsModule) {
+
+            ClientsModule
+                .loadBindings()
+                .then(() => ClientsModule.render());
+
+        }
+
     }
     catch (error) {
 
