@@ -202,15 +202,29 @@ renderRow(client) {
             k => k.client_id === client.id
         );
 
-    const bound =
-        kp
-            ? (kp.comment ||
-               kp.public_key.slice(0, 12)) +
-              " · " +
-              kp.wg_interface +
-              " · " +
-              kp.allowed_address
-            : "";
+    let bound = "";
+
+    if (kp) {
+
+        // Имя пира (RouterOS) важнее интерфейса: сервер использует
+        // один интерфейс, интерфейс в подписи не несёт информации.
+        const name =
+            kp.peer_name ||
+            kp.comment ||
+            kp.public_key.slice(0, 12);
+
+        const comment =
+            kp.peer_name && kp.comment
+                ? " (" + kp.comment + ")"
+                : "";
+
+        bound =
+            name +
+            comment +
+            " · " +
+            kp.allowed_address;
+
+    }
 
 
 return `
@@ -675,8 +689,66 @@ try {
         exportData.mode === "udp"
     ) {
 
+        //
+        // Клиент привязан к пиру — предзаполняем окно
+        // конфигурации его WG.config (админ может править).
+        // Шаг НЕ пропускается: только префилл.
+        //
+
+        let wgDefault =
+            "";
+
+
+        const boundKp =
+            this.bindings.find(
+                k => k.client_id === client.id
+            );
+
+
+        if (boundKp) {
+
+            try {
+
+                const resp =
+                    await fetch(
+                        "/api/wireguard/peer/config?public_key=" +
+                        encodeURIComponent(
+                            boundKp.public_key
+                        ),
+                        {
+                            credentials: "same-origin"
+                        }
+                    );
+
+
+                const data =
+                    await resp.json();
+
+
+                if (data.status === "ok") {
+
+                    wgDefault =
+                        data.config;
+
+                }
+
+            }
+            catch (error) {
+
+                console.error(
+                    "[ClientsModule] WG prefill",
+                    error
+                );
+
+            }
+
+        }
+
+
         const wg =
-            await UriClientConfigModal.show();
+            await UriClientConfigModal.show(
+                wgDefault
+            );
 
 
         if (
@@ -781,10 +853,12 @@ async bindPeer(id) {
                 value: kp.public_key,
 
                 label:
-                    (kp.comment ||
+                    (kp.peer_name ||
+                     kp.comment ||
                      kp.public_key.slice(0, 12)) +
-                    " · " +
-                    kp.wg_interface +
+                    (kp.peer_name && kp.comment
+                        ? " (" + kp.comment + ")"
+                        : "") +
                     " · " +
                     kp.allowed_address +
                     (kp.client_id === id

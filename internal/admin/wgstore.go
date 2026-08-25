@@ -33,7 +33,11 @@ type WGKeypair struct {
 	AllowedAddr string `json:"allowed_address"`
 	ClientID    string `json:"client_id,omitempty"`
 	Comment     string `json:"comment"`
-	CreatedAt   int64  `json:"created_at"`
+	// PeerName — имя пира на роутере (RouterOS auto-assigns
+	// "peer<N>"). For display: the interface name adds no value
+	// (the server uses one interface), the peer name/comment does.
+	PeerName  string `json:"peer_name,omitempty"`
+	CreatedAt int64  `json:"created_at"`
 }
 
 // WGStore is the on-disk keypair database.

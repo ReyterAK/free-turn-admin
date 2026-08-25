@@ -624,6 +624,16 @@ func (r *Router) wireguardCreatePeer(w http.ResponseWriter, req *http.Request) {
 		})
 		return
 	}
+	// Запомнить имя, которое RouterOS назначил пиру (peer<N>):
+	// в UI показывается имя/комментарий пира, не интерфейс.
+	if peers, err := client.ListPeers(); err == nil {
+		for i := range peers {
+			if peers[i].PublicKey == kp.PublicKey {
+				kp.PeerName = peers[i].Name
+				break
+			}
+		}
+	}
 	if err := store.Save(); err != nil {
 		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
 			"status": "error",
@@ -754,6 +764,7 @@ func (r *Router) wireguardImportPeer(w http.ResponseWriter, req *http.Request) {
 		PrivateKey:  strings.TrimSpace(body.PrivateKey),
 		AllowedAddr: found.AllowedAddr,
 		Comment:     found.Comment,
+		PeerName:    found.Name,
 		CreatedAt:   time.Now().Unix(),
 	}
 	store.Keypairs = append(store.Keypairs, *kp)
@@ -920,6 +931,7 @@ func (r *Router) wireguardBindings(w http.ResponseWriter, req *http.Request) {
 		out = append(out, map[string]any{
 			"public_key":      kp.PublicKey,
 			"wg_interface":    kp.WGInterface,
+			"peer_name":       kp.PeerName,
 			"comment":         kp.Comment,
 			"allowed_address": kp.AllowedAddr,
 			"client_id":       kp.ClientID,

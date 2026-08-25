@@ -261,6 +261,10 @@ init() {
 
 //
 // Show modal.
+// show(defaultText) opens the modal. defaultText (optional)
+// pre-fills the configuration field — used when the client is
+// bound to a peer (its WG.config is loaded into the field; the
+// admin may edit before continuing).
 //
 // Returns:
 //
@@ -268,7 +272,7 @@ init() {
 // - Promise<null> when Cancel is pressed
 //
 
-show() {
+show(defaultText = "") {
 
 
     const modal =
@@ -314,11 +318,11 @@ show() {
 
 
     //
-    // Reset current value.
+    // Current value (pre-filled for bound clients).
     //
 
     this.value =
-        "";
+        defaultText || "";
 
 
     //
@@ -334,11 +338,11 @@ show() {
 
 
     //
-    // Reset input.
+    // Set input.
     //
 
     value.value =
-        "";
+        this.value;
 
 
     //
