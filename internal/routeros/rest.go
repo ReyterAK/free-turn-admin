@@ -278,6 +278,84 @@ func (c *Client) UpdatePeer(id string, fields map[string]any) error {
 	return c.patch("/interface/wireguard/peers/"+id, fields)
 }
 
+// ---------------------------------------------------------------------
+// routing diagnostics (read-only)
+// ---------------------------------------------------------------------
+
+// Route is a RouterOS route (/ip/route).
+type Route struct {
+	ID           string  `json:".id"`
+	DstAddress   string  `json:"dst-address"`
+	Gateway      string  `json:"gateway"`
+	RoutingTable string  `json:"routing-table"`
+	Dynamic      rosBool `json:"dynamic"`
+	Connect      rosBool `json:"connect"`
+}
+
+// FilterRule is a RouterOS firewall filter rule (/ip/firewall/filter).
+// Constraint fields (address-lists, interface-lists, connection-state)
+// matter: a rule is "blanket" only when ALL of them are empty.
+type FilterRule struct {
+	ID               string  `json:".id"`
+	Chain            string  `json:"chain"`
+	Action           string  `json:"action"`
+	SrcAddress       string  `json:"src-address"`
+	DstAddress       string  `json:"dst-address"`
+	DstPort          string  `json:"dst-port"`
+	Protocol         string  `json:"protocol"`
+	SrcAddressList   string  `json:"src-address-list"`
+	DstAddressList   string  `json:"dst-address-list"`
+	InInterface      string  `json:"in-interface"`
+	OutInterface     string  `json:"out-interface"`
+	InInterfaceList  string  `json:"in-interface-list"`
+	OutInterfaceList string  `json:"out-interface-list"`
+	ConnectionState  string  `json:"connection-state"`
+	Comment          string  `json:"comment"`
+	Disabled         rosBool `json:"disabled"`
+}
+
+// NatRule is a RouterOS firewall NAT rule (/ip/firewall/nat).
+type NatRule struct {
+	ID          string  `json:".id"`
+	Chain       string  `json:"chain"`
+	Action      string  `json:"action"`
+	SrcAddress  string  `json:"src-address"`
+	DstAddress  string  `json:"dst-address"`
+	DstPort     string  `json:"dst-port"`
+	Protocol    string  `json:"protocol"`
+	ToAddresses string  `json:"to-addresses"`
+	ToPorts     string  `json:"to-ports"`
+	Disabled    rosBool `json:"disabled"`
+}
+
+// ListRoutes returns all routes (routing tables included).
+func (c *Client) ListRoutes() ([]Route, error) {
+	var out []Route
+	if err := c.get("/ip/route", &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ListFilterRules returns all firewall filter rules in execution
+// order (the array order matches RouterOS print order).
+func (c *Client) ListFilterRules() ([]FilterRule, error) {
+	var out []FilterRule
+	if err := c.get("/ip/firewall/filter", &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ListNatRules returns all firewall NAT rules.
+func (c *Client) ListNatRules() ([]NatRule, error) {
+	var out []NatRule
+	if err := c.get("/ip/firewall/nat", &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AddPeer creates a WireGuard peer (public key + allowed address).
 func (c *Client) AddPeer(iface, publicKey, allowedAddress, comment string) error {
 	payload := map[string]any{

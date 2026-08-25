@@ -3168,3 +3168,18 @@ h3,
 #wg-create-msg { margin-left: 8px; }
 
 .wg-peer-config-btn { font-size: 12px; padding: 2px 8px; cursor: pointer; }
+
+/* Routing diagnostics (read-only) */
+.routing-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.routing-head h3 { margin: 0; }
+.routing-warning { background: #fff3e0; border: 1px solid #e67e22; color: #7a4a00; padding: 10px 12px; border-radius: 4px; margin: 8px 0; font-size: 13px; }
+.routing-loading { color: #888; padding: 8px 0; }
+.routing-group { margin: 14px 0 6px; color: #555; }
+.routing-check { border: 1px solid #ddd; border-left-width: 4px; border-radius: 4px; padding: 8px 12px; margin: 6px 0; }
+.routing-ok { border-left-color: #27ae60; }
+.routing-info { border-left-color: #3498db; }
+.routing-warning { border-left-color: #f39c12; }
+.routing-error { border-left-color: #c0392b; }
+.routing-title { font-weight: bold; }
+.routing-detail { margin-top: 2px; font-size: 13px; color: #444; }
+.routing-cmds { background: #2c3e50; color: #ecf0f1; padding: 8px 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; margin: 6px 0 0; white-space: pre-wrap; word-break: break-all; }

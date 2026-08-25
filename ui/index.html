@@ -110,6 +110,16 @@
 
         </button>
 
+
+        <button
+            type="button"
+            onclick="showTab('routing')"
+            data-i18n="tabs.routing">
+
+            Маршрутизация
+
+        </button>
+
     </div>
 
 
@@ -620,6 +630,42 @@
                 </table>
 
             </div>
+
+        </div>
+
+
+        <!-- =========================
+             ROUTING TAB (diagnostics only)
+        ========================== -->
+
+        <div
+            id="tab-routing"
+            class="tab hidden">
+
+            <div class="routing-head">
+
+                <h3 data-i18n="tabs.routing">
+                    Маршрутизация
+                </h3>
+
+                <button
+                    type="button"
+                    id="routing-refresh"
+                    data-i18n="routing.refresh">
+
+                    Обновить
+
+                </button>
+
+            </div>
+
+            <div
+                id="routing-warning"
+                class="routing-warning"
+                data-i18n="routing.warning">
+            </div>
+
+            <div id="routing-results"></div>
 
         </div>
 
@@ -1289,6 +1335,8 @@
 
 <script src="/js/modules/status.js?v=20260824-1"></script>
 <script src="/js/modules/wireguard.js?v=20260824-1"></script>
+
+<script src="/js/modules/routing.js?v=20260825-1"></script>
 
 <script src="/js/modules/admin.js?v=20260824-1"></script>
 

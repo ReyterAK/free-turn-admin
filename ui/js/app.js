@@ -104,6 +104,12 @@ const App = {
         
         }
 
+        if (window.RoutingModule) {
+
+            await RoutingModule.init();
+
+        }
+
         if (window.AdminModule) {
 
             await AdminModule.init();
@@ -181,6 +187,15 @@ const App = {
         ) {
 
             WireGuardModule.refresh();
+
+        }
+
+        if (
+            name === "routing" &&
+            window.RoutingModule
+        ) {
+
+            RoutingModule.refresh();
 
         }
 

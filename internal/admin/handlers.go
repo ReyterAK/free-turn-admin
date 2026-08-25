@@ -204,6 +204,8 @@ func (r *Router) api(w http.ResponseWriter, req *http.Request) {
 		r.requireAuth(r.wireguardDeleteKeypair)(w, req)
 	case method == "GET" && path == "/api/wireguard/bindings":
 		r.requireAuth(r.wireguardBindings)(w, req)
+	case method == "GET" && path == "/api/routing/diagnostics":
+		r.requireAuth(r.wireguardRoutingDiagnostics)(w, req)
 	case method == "POST" && path == "/api/wireguard/bind":
 		r.requireAuth(r.wireguardBindPeer)(w, req)
 	case method == "POST" && path == "/api/wireguard/unbind":
