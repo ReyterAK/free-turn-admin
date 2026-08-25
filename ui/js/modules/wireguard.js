@@ -1424,7 +1424,29 @@ render(data) {
 
         this.renderBackendLine(null);
 
-        this.renderBackendState(null);
+        // RouterOS не настроен — боксы состояния не показываем:
+        // backend_missing относится ТОЛЬКО к случаю «RouterOS
+        // настроен, а Backend нет» (иначе ложное сообщение при
+        // отсутствии routeros.json).
+        [
+            "wg-backend-missing",
+            "wg-match-missing",
+            "wg-port-warn"
+        ].forEach(
+            id => {
+
+                const el =
+                    document.getElementById(
+                        id
+                    );
+
+                if (el)
+                    el.style.display = "none";
+
+            }
+        );
+
+        this.updateCreateDeleteButton(null);
 
         this.renderInterface(null);
 
