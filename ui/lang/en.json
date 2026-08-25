@@ -363,5 +363,14 @@
 "wg.error.peer_not_found": "No router peer matches this public key. Check that the key belongs to a peer of this interface.",
 "wg.error.keypair_exists": "This peer already has a key — no import needed.",
 "wg.error.peer_keypair_not_found": "This peer has no panel key. Create or import a key first.",
-"wg.error.client_not_found": "Client not found."
+"wg.error.client_not_found": "Client not found.",
+"wg.rotate_key_btn": "Rotate key",
+"wg.rotate_confirm_title": "Rotate key",
+"wg.rotate_confirm_text": "Replace the peer key? The client device must re-import the new config — the old one stops working.",
+"wg.rotate_success_title": "Key rotated",
+"wg.delete_peer_btn": "Delete",
+"wg.delete_peer_title": "Delete peer",
+"wg.delete_peer_confirm": "Delete the peer from the router?",
+"wg.delete_peer_confirm2": "The peer will be deleted from the router together with the panel key (and the client binding). This cannot be undone.",
+"wg.delete_peer_ok": "Peer deleted"
 }

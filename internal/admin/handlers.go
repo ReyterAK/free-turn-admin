@@ -196,6 +196,10 @@ func (r *Router) api(w http.ResponseWriter, req *http.Request) {
 		r.requireAuth(r.wireguardCreatePeer)(w, req)
 	case method == "POST" && path == "/api/wireguard/peer/import":
 		r.requireAuth(r.wireguardImportPeer)(w, req)
+	case method == "POST" && path == "/api/wireguard/peer/rotate":
+		r.requireAuth(r.wireguardRotatePeer)(w, req)
+	case method == "POST" && path == "/api/wireguard/peer/delete":
+		r.requireAuth(r.wireguardDeletePeer)(w, req)
 	case method == "GET" && path == "/api/wireguard/bindings":
 		r.requireAuth(r.wireguardBindings)(w, req)
 	case method == "POST" && path == "/api/wireguard/bind":

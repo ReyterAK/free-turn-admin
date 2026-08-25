@@ -1794,41 +1794,53 @@ actionsCell(peer) {
     const pub =
         peer["public-key"] || peer[".id"];
 
-    if (peer.has_keypair !== true) {
+    const name =
+        peer.name || pub.slice(0, 12);
 
-        // No panel-managed key yet — offer importing the EXISTING
-        // client private key (peer keys generated outside the panel).
-        const btn =
-            document.createElement(
-                "button"
-            );
+    // Импорт ключа (пир без панельного ключа) или WG.config
+    // (с ключом).
+    if (peer.has_keypair === true) {
 
-        btn.type = "button";
-
-        btn.className = "wg-peer-config-btn";
-
-        btn.textContent =
-            safeT("wg.import_key_btn");
-
-        btn.addEventListener(
-            "click",
-            () => {
-
-                this.importPeerKey(
-                    pub,
-                    peer.name || pub.slice(0, 12)
-                );
-
-            }
+        cell.appendChild(
+            this.actionButton(
+                safeT("wg.config_btn"),
+                () => this.showPeerConfig(pub, name)
+            )
         );
 
         cell.appendChild(
-            btn
+            this.actionButton(
+                safeT("wg.rotate_key_btn"),
+                () => this.rotatePeerKey(pub, name)
+            )
         );
 
-        return cell;
+    }
+    else {
+
+        cell.appendChild(
+            this.actionButton(
+                safeT("wg.import_key_btn"),
+                () => this.importPeerKey(pub, name)
+            )
+        );
 
     }
+
+    // Удаление доступно всем пирам таблицы.
+    cell.appendChild(
+        this.actionButton(
+            safeT("wg.delete_peer_btn"),
+            () => this.deletePeer(pub, name, peer)
+        )
+    );
+
+    return cell;
+
+},
+
+// actionButton is a small helper building a table button.
+actionButton(text, onClick) {
 
     const btn =
         document.createElement(
@@ -1840,25 +1852,195 @@ actionsCell(peer) {
     btn.className = "wg-peer-config-btn";
 
     btn.textContent =
-        safeT("wg.config_btn");
+        text;
 
     btn.addEventListener(
         "click",
-        () => {
+        onClick
+    );
 
-            this.showPeerConfig(
-                pub,
-                peer.name || pub.slice(0, 12)
+    return btn;
+
+},
+
+// rotatePeerKey replaces the peer's keys (new X25519 pair on the
+// router + wg.json). The old client config becomes invalid — the
+// new one is shown in a config dialog afterwards.
+async rotatePeerKey(publicKey, name) {
+
+    if (!window.Dialog)
+        return;
+
+    const ok =
+        await Dialog.confirm(
+            safeT("wg.rotate_confirm_title"),
+            safeT("wg.rotate_confirm_text") +
+            "\n\n" +
+            name
+        );
+
+    if (!ok)
+        return;
+
+    try {
+
+        const resp =
+            await fetch(
+                "/api/wireguard/peer/rotate",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        public_key: publicKey
+                    })
+                }
+            );
+
+        const data =
+            await resp.json();
+
+        if (data.status !== "ok") {
+
+            this.mapImportError(data);
+
+            return;
+
+        }
+
+        // Новый конфиг сразу в диалог (старый недействителен).
+        if (data.config && Dialog.config) {
+
+            Dialog.config(
+                safeT("wg.rotate_success_title") +
+                " — " +
+                name,
+                data.config || "",
+                {
+                    fileName: "WG.config"
+                }
             );
 
         }
-    );
+        else {
 
-    cell.appendChild(
-        btn
-    );
+            this.showMsg(
+                safeT("wg.rotate_success_title"),
+                "ok"
+            );
 
-    return cell;
+        }
+
+        this.refresh();
+
+    }
+    catch (error) {
+
+        console.error(
+            "[WireGuardModule] rotate failed",
+            error
+        );
+
+        this.showMsg(
+            String(error),
+            "error"
+        );
+
+    }
+
+},
+
+// deletePeer removes the peer from the router and the panel
+// keypair (with its client binding). Double confirmation.
+async deletePeer(publicKey, name, peer) {
+
+    if (!window.Dialog)
+        return;
+
+    const first =
+        await Dialog.confirm(
+            safeT("wg.delete_peer_title"),
+            safeT("wg.delete_peer_confirm") +
+            "\n\n" +
+            name
+        );
+
+    if (!first)
+        return;
+
+    const bound =
+        peer.keypair_client || "";
+
+    const second =
+        await Dialog.confirm(
+            safeT("wg.delete_peer_title"),
+            safeT("wg.delete_peer_confirm2") +
+            "\n\n" +
+            name +
+            (bound
+                ? "\n" +
+                  safeT("wg.col.client") +
+                  ": " +
+                  bound
+                : "")
+        );
+
+    if (!second)
+        return;
+
+    try {
+
+        const resp =
+            await fetch(
+                "/api/wireguard/peer/delete",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        public_key: publicKey
+                    })
+                }
+            );
+
+        const data =
+            await resp.json();
+
+        if (data.status !== "ok") {
+
+            this.mapImportError(data);
+
+            return;
+
+        }
+
+        this.showMsg(
+            safeT("wg.delete_peer_ok") +
+            " — " +
+            name,
+            "ok"
+        );
+
+        this.refresh();
+
+    }
+    catch (error) {
+
+        console.error(
+            "[WireGuardModule] delete peer failed",
+            error
+        );
+
+        this.showMsg(
+            String(error),
+            "error"
+        );
+
+    }
 
 },
 

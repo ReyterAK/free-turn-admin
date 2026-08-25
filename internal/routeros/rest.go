@@ -170,6 +170,34 @@ func (c *Client) post(path string, payload map[string]any) error {
 	return nil
 }
 
+// patch sends a JSON PATCH (RouterOS REST partial update of a
+// concrete item, path ends with .id).
+func (c *Client) patch(path string, payload map[string]any) error {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("routeros: %w", err)
+	}
+	req, err := http.NewRequest(http.MethodPatch, c.baseURL+path, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("routeros: %w", err)
+	}
+	req.SetBasicAuth(c.user, c.pass)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return fmt.Errorf("routeros: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		data, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return fmt.Errorf("routeros: %s -> HTTP %d: %s",
+			path, resp.StatusCode, strings.TrimSpace(string(data)))
+	}
+	return nil
+}
+
 // del sends a DELETE for a concrete item (path ends with .id).
 func (c *Client) del(path string) error {
 	req, err := http.NewRequest(http.MethodDelete, c.baseURL+path, nil)
@@ -241,6 +269,13 @@ func (c *Client) DeleteInterface(id string) error {
 // DeletePeer removes a WireGuard peer by .id.
 func (c *Client) DeletePeer(id string) error {
 	return c.del("/interface/wireguard/peers/" + id)
+}
+
+// UpdatePeer changes fields of a peer by .id (e.g. "public-key"
+// during key rotation; the new key must already belong to the
+// client before the change takes effect).
+func (c *Client) UpdatePeer(id string, fields map[string]any) error {
+	return c.patch("/interface/wireguard/peers/"+id, fields)
 }
 
 // AddPeer creates a WireGuard peer (public key + allowed address).

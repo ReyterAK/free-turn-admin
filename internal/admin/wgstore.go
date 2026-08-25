@@ -139,6 +139,23 @@ func (s *WGStore) UnbindClient(pub string) error {
 	return nil
 }
 
+// RotateKey replaces the keys of the keypair with the given old
+// public key (key rotation). The entry keeps its id, interface,
+// allowed address, comment, peer name and client binding — only
+// the keys and created_at change. The ROUTER side (updating the
+// peer's public-key) is the caller's job; the store update must
+// follow the router change. Save() is NOT called.
+func (s *WGStore) RotateKey(oldPub, newPub, newPriv string) (*WGKeypair, error) {
+	kp := s.FindByPublicKey(oldPub)
+	if kp == nil {
+		return nil, ErrPeerKeypairNotFound
+	}
+	kp.PublicKey = newPub
+	kp.PrivateKey = newPriv
+	kp.CreatedAt = time.Now().Unix()
+	return kp, nil
+}
+
 // Remove removes the keypair with the given public key.
 func (s *WGStore) Remove(pub string) {
 	out := s.Keypairs[:0]

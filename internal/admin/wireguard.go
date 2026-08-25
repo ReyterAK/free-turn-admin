@@ -941,6 +941,212 @@ func (r *Router) wireguardBindings(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, map[string]any{"status": "ok", "keypairs": out})
 }
 
+// wireguardRotatePeer replaces the keys of a panel-managed peer:
+// a new X25519 pair is generated, the peer's public-key on the
+// router is updated, then the keys in wg.json are swapped (the
+// entry keeps its interface/address/comment/peer name and client
+// binding). The old client config stops working — the admin gets
+// the new one. Requires the "write" policy.
+func (r *Router) wireguardRotatePeer(w http.ResponseWriter, req *http.Request) {
+	cfg, err := LoadRouterOSConfig()
+	if err != nil || cfg.URL == "" {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "not_configured",
+		})
+		return
+	}
+
+	var body bindPeerRequest // uses PublicKey only
+	if req.Body != nil {
+		_ = json.NewDecoder(req.Body).Decode(&body)
+	}
+	pub := strings.TrimSpace(body.PublicKey)
+	if pub == "" {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "public_key_required",
+		})
+		return
+	}
+
+	store, err := LoadWGStore()
+	if err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+	if store.FindByPublicKey(pub) == nil {
+		writeJSONStatus(w, http.StatusNotFound, map[string]any{
+			"status": "error",
+			"error":  "peer_keypair_not_found",
+		})
+		return
+	}
+
+	client := routeros.New(cfg.URL, cfg.User, cfg.Pass, 6*time.Second)
+	peers, err := client.ListPeers()
+	if err != nil {
+		writeJSONStatus(w, http.StatusBadGateway, map[string]any{
+			"status": "error",
+			"error":  classifyRouterOSError(err),
+		})
+		return
+	}
+	var peer *routeros.Peer
+	for i := range peers {
+		if peers[i].PublicKey == pub {
+			peer = &peers[i]
+			break
+		}
+	}
+	if peer == nil {
+		writeJSONStatus(w, http.StatusNotFound, map[string]any{
+			"status": "error",
+			"error":  "peer_not_found",
+		})
+		return
+	}
+
+	// Новая пара ключей (X25519, как при создании пира).
+	priv, err := ecdh.X25519().GenerateKey(rand.Reader)
+	if err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+	newPub := base64.StdEncoding.EncodeToString(priv.PublicKey().Bytes())
+	newPriv := base64.StdEncoding.EncodeToString(priv.Bytes())
+
+	// Роутер сначала, хранилище потом: при ошибке роутера
+	// wg.json не трогаем (ротация не состоялась).
+	if err := client.UpdatePeer(peer.ID, map[string]any{"public-key": newPub}); err != nil {
+		writeJSONStatus(w, http.StatusBadGateway, map[string]any{
+			"status": "error",
+			"error":  classifyRouterOSError(err),
+		})
+		return
+	}
+
+	kp, err := store.RotateKey(pub, newPub, newPriv)
+	if err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+	if err := store.Save(); err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	LogEvent("wireguard", "KEY_ROTATED", "rotated key for "+newPub[:12]+" on "+kp.WGInterface)
+	writeJSON(w, map[string]any{
+		"status":          "ok",
+		"public_key":      newPub,
+		"wg_interface":    kp.WGInterface,
+		"allowed_address": kp.AllowedAddr,
+		"client_id":       kp.ClientID,
+		"config": buildClientConfig(
+			newPriv,
+			kp.AllowedAddr,
+			serverPublicKeyFor(client, kp.WGInterface),
+			backendEndpoint(),
+			cfg.ClientDNS,
+		),
+	})
+}
+
+// wireguardDeletePeer removes a peer from the router and, when a
+// panel keypair exists, its wg.json entry (the client binding, if
+// any, is dropped with it). Requires the "write" policy.
+func (r *Router) wireguardDeletePeer(w http.ResponseWriter, req *http.Request) {
+	cfg, err := LoadRouterOSConfig()
+	if err != nil || cfg.URL == "" {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "not_configured",
+		})
+		return
+	}
+
+	var body bindPeerRequest // uses PublicKey only
+	if req.Body != nil {
+		_ = json.NewDecoder(req.Body).Decode(&body)
+	}
+	pub := strings.TrimSpace(body.PublicKey)
+	if pub == "" {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "public_key_required",
+		})
+		return
+	}
+
+	client := routeros.New(cfg.URL, cfg.User, cfg.Pass, 6*time.Second)
+	peers, err := client.ListPeers()
+	if err != nil {
+		writeJSONStatus(w, http.StatusBadGateway, map[string]any{
+			"status": "error",
+			"error":  classifyRouterOSError(err),
+		})
+		return
+	}
+	var peer *routeros.Peer
+	for i := range peers {
+		if peers[i].PublicKey == pub {
+			peer = &peers[i]
+			break
+		}
+	}
+	if peer == nil {
+		writeJSONStatus(w, http.StatusNotFound, map[string]any{
+			"status": "error",
+			"error":  "peer_not_found",
+		})
+		return
+	}
+
+	if err := client.DeletePeer(peer.ID); err != nil {
+		writeJSONStatus(w, http.StatusBadGateway, map[string]any{
+			"status": "error",
+			"error":  classifyRouterOSError(err),
+		})
+		return
+	}
+
+	// Keypair панели (если был) — вместе с привязкой клиента.
+	store, err := LoadWGStore()
+	if err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+	if store.FindByPublicKey(pub) != nil {
+		store.Remove(pub)
+		if err := store.Save(); err != nil {
+			writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+				"status": "error",
+				"error":  err.Error(),
+			})
+			return
+		}
+	}
+
+	LogEvent("wireguard", "PEER_DELETED", "deleted peer "+pub[:12])
+	writeJSON(w, map[string]any{"status": "ok", "public_key": pub})
+}
+
 // serverPublicKeyFor returns the public key of a WG interface.
 func serverPublicKeyFor(client *routeros.Client, ifaceName string) string {
 	ifaces, err := client.ListInterfaces()

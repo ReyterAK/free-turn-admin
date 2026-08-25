@@ -85,3 +85,41 @@ func TestBindClientErrors(t *testing.T) {
 		t.Errorf("expected ErrPeerKeypairNotFound on unbind, got %v", err)
 	}
 }
+
+func TestRotateKey(t *testing.T) {
+	s := newTestStore()
+	if err := s.BindClient("client-1", "pub-a"); err != nil {
+		t.Fatalf("bind: %v", err)
+	}
+
+	kp, err := s.RotateKey("pub-a", "pub-a-new", "priv-a-new")
+	if err != nil {
+		t.Fatalf("rotate: %v", err)
+	}
+	if kp.PublicKey != "pub-a-new" || kp.PrivateKey != "priv-a-new" {
+		t.Errorf("keys not replaced: %+v", kp)
+	}
+	// привязка, интерфейс, адрес, комментарий сохраняются
+	if kp.ClientID != "client-1" {
+		t.Errorf("binding lost after rotation: %q", kp.ClientID)
+	}
+	if kp.WGInterface != "Free_Turn_NEW_WG" || kp.AllowedAddr != "10.10.30.2/32" || kp.Comment != "User_1" {
+		t.Errorf("entry fields changed: %+v", kp)
+	}
+	// старый ключ больше не находится, новый — находится
+	if s.FindByPublicKey("pub-a") != nil {
+		t.Error("old public key still present after rotation")
+	}
+	if s.FindByPublicKey("pub-a-new") == nil {
+		t.Error("new public key not findable after rotation")
+	}
+	// привязка клиента следует за пиром
+	if s.FindByClient("client-1") == nil || s.FindByClient("client-1").PublicKey != "pub-a-new" {
+		t.Error("client binding did not follow the rotated peer")
+	}
+
+	// неизвестный пир
+	if _, err := s.RotateKey("pub-unknown", "x", "y"); !errors.Is(err, ErrPeerKeypairNotFound) {
+		t.Errorf("expected ErrPeerKeypairNotFound, got %v", err)
+	}
+}
