@@ -749,6 +749,10 @@ try {
 
 async bindPeer(id) {
 
+    // Свежие данные: пиры могли появиться/измениться после
+    // последней загрузки (создание/импорт во вкладке WireGuard).
+    await this.loadBindings();
+
     const bindable =
         this.bindings.filter(
             kp =>
@@ -783,11 +787,15 @@ async bindPeer(id) {
                     kp.wg_interface +
                     " · " +
                     kp.allowed_address +
-                    (kp.client_id
+                    (kp.client_id === id
                         ? " (" +
-                          safeT("clients.bound_other") +
+                          safeT("clients.current_binding") +
                           ")"
-                        : "")
+                        : kp.client_id
+                            ? " (" +
+                              safeT("clients.bound_other") +
+                              ")"
+                            : "")
 
             })
         );

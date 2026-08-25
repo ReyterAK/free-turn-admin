@@ -143,6 +143,7 @@
 "clients.unbind_success": "Пир отвязан от клиента.",
 "clients.no_peers_to_bind": "Нет пиров с ключами панели. Сначала создайте или импортируйте ключ пира (вкладка WireGuard).",
 "clients.bound_other": "привязан к другому клиенту",
+"clients.current_binding": "текущая привязка",
 "clients.bind_error_message": "Не удалось изменить привязку.",
 "dialog.title_error": "Ошибка",
 "dialog.title_done": "Готово",

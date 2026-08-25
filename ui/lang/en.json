@@ -143,6 +143,7 @@
 "clients.unbind_success": "Peer unbound from client.",
 "clients.no_peers_to_bind": "No peers with panel keys. Create or import a peer key first (WireGuard tab).",
 "clients.bound_other": "bound to another client",
+"clients.current_binding": "current binding",
 "clients.bind_error_message": "Failed to change the binding.",
 "dialog.title_error": "Error",
 "dialog.title_done": "Done",
