@@ -167,6 +167,22 @@ const App = {
         );
 
 
+        //
+        // Per-tab show hooks. The WireGuard view is refreshed every
+        // time its tab is opened: bindings done from the «Клиенты»
+        // tab (or router changes outside the panel) must be visible
+        // immediately — the tab has no background polling.
+        //
+
+        if (
+            name === "wireguard" &&
+            window.WireGuardModule
+        ) {
+
+            WireGuardModule.refresh();
+
+        }
+
     }
 
 

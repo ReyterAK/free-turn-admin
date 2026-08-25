@@ -1069,8 +1069,6 @@ async bindPeer(id) {
 
         await this.refresh();
 
-        this.syncWireGuardTab();
-
     }
     catch (error) {
 
@@ -1152,8 +1150,6 @@ async unbindPeer(id) {
 
         await this.refresh();
 
-        this.syncWireGuardTab();
-
     }
     catch (error) {
 
@@ -1188,45 +1184,6 @@ mapBindError(data) {
             ? safeT(map[data.error])
             : (data.error || safeT("clients.bind_error_message"))
     );
-
-},
-
-// syncWireGuardTab refreshes the WireGuard tab (its «Клиент»
-// column) after a client↔peer binding change, when that tab is
-// visible. The WireGuard tab refreshes itself after its own
-// actions (delete/rotate/import), so this covers only the
-// clients-side direction.
-syncWireGuardTab() {
-
-    if (
-        !window.WireGuardModule ||
-        !document.getElementById(
-            "tab-wireguard"
-        )
-    ) {
-
-        return;
-
-    }
-
-    const tab =
-        document.getElementById(
-            "tab-wireguard"
-        );
-
-
-    if (
-        tab.classList.contains(
-            "hidden"
-        )
-    ) {
-
-        return;
-
-    }
-
-
-    WireGuardModule.refresh();
 
 },
 
