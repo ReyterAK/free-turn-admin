@@ -101,6 +101,36 @@ func hostOf(addr string) string {
 	return addr
 }
 
+// ipsByIfaceFrom maps interface name → addresses (with /prefix,
+// "10.10.30.1/24").
+func ipsByIfaceFrom(addrs []routeros.Address) map[string][]string {
+	ipsByIface := map[string][]string{}
+	for _, a := range addrs {
+		name := a.Interface
+		if name == "" {
+			name = a.ActualInterface
+		}
+		if name == "" {
+			continue
+		}
+		ipsByIface[name] = append(ipsByIface[name], a.Address)
+	}
+	return ipsByIface
+}
+
+// matchInterfaceName returns the name of the WG interface whose IP
+// matches the Backend -connect host ("" when not found).
+func matchInterfaceName(ipsByIface map[string][]string, backendHost string) string {
+	for iface, ips := range ipsByIface {
+		for _, ip := range ips {
+			if hostOf(ip) == backendHost {
+				return iface
+			}
+		}
+	}
+	return ""
+}
+
 // wireguardStatus reports the backend-matched WireGuard state.
 func (r *Router) wireguardStatus(w http.ResponseWriter, req *http.Request) {
 	cfg, err := LoadRouterOSConfig()
@@ -146,30 +176,16 @@ func (r *Router) wireguardStatus(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// interface name -> addresses (с маской, "10.10.30.1/24")
-	ipsByIface := map[string][]string{}
-	for _, a := range addresses {
-		name := a.Interface
-		if name == "" {
-			name = a.ActualInterface
-		}
-		if name == "" {
-			continue
-		}
-		ipsByIface[name] = append(ipsByIface[name], a.Address)
-	}
+	ipsByIface := ipsByIfaceFrom(addresses)
 
 	// Матч: IP из Backend против IP WG-интерфейсов.
 	match := map[string]any{"status": "ip_not_found"}
 	if backendOK {
+		matchName := matchInterfaceName(ipsByIface, backendHost)
 		var matched *routeros.Interface
 		for i := range interfaces {
-			for _, ip := range ipsByIface[interfaces[i].Name] {
-				if hostOf(ip) == backendHost {
-					matched = &interfaces[i]
-					break
-				}
-			}
-			if matched != nil {
+			if interfaces[i].Name == matchName {
+				matched = &interfaces[i]
 				break
 			}
 		}
@@ -749,6 +765,42 @@ func (r *Router) wireguardImportPeer(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// Панель обслуживает ОДИН интерфейс — тот, что совпадает с
+	// Backend. Ключ пира с ДРУГОГО интерфейса импортировать нельзя
+	// (иначе в панели появляется «чужой» пир, недостижимый для
+	// управления). Проверка по IP Backend против IP интерфейсов.
+	backendHost, _, backendOK := backendHostPort()
+	if !backendOK {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "backend_interface_not_found",
+		})
+		return
+	}
+	addrs, err := client.ListAddresses()
+	if err != nil {
+		writeJSONStatus(w, http.StatusBadGateway, map[string]any{
+			"status": "error",
+			"error":  classifyRouterOSError(err),
+		})
+		return
+	}
+	matchedName := matchInterfaceName(ipsByIfaceFrom(addrs), backendHost)
+	if matchedName == "" {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "backend_interface_not_found",
+		})
+		return
+	}
+	if found.Interface != matchedName {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "peer_on_other_interface",
+		})
+		return
+	}
+
 	id := make([]byte, 16)
 	if _, err := rand.Read(id); err != nil {
 		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
@@ -1144,6 +1196,52 @@ func (r *Router) wireguardDeletePeer(w http.ResponseWriter, req *http.Request) {
 	}
 
 	LogEvent("wireguard", "PEER_DELETED", "deleted peer "+pub[:12])
+	writeJSON(w, map[string]any{"status": "ok", "public_key": pub})
+}
+
+// wireguardDeleteKeypair removes a wg.json keypair WITHOUT touching
+// the router — for stray/foreign entries (a keypair whose router
+// peer lives on another interface, or whose peer was deleted
+// outside the panel). Requires the "write" policy.
+func (r *Router) wireguardDeleteKeypair(w http.ResponseWriter, req *http.Request) {
+	var body bindPeerRequest // uses PublicKey only
+	if req.Body != nil {
+		_ = json.NewDecoder(req.Body).Decode(&body)
+	}
+	pub := strings.TrimSpace(body.PublicKey)
+	if pub == "" {
+		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+			"status": "error",
+			"error":  "public_key_required",
+		})
+		return
+	}
+
+	store, err := LoadWGStore()
+	if err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+	if store.FindByPublicKey(pub) == nil {
+		writeJSONStatus(w, http.StatusNotFound, map[string]any{
+			"status": "error",
+			"error":  "peer_keypair_not_found",
+		})
+		return
+	}
+	store.Remove(pub)
+	if err := store.Save(); err != nil {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	LogEvent("wireguard", "KEYPAIR_DELETED", "deleted stray keypair "+pub[:12])
 	writeJSON(w, map[string]any{"status": "ok", "public_key": pub})
 }
 

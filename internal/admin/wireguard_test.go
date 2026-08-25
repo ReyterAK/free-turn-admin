@@ -28,3 +28,26 @@ func TestClassifyRouterOSError(t *testing.T) {
 		}
 	}
 }
+
+func TestMatchInterfaceName(t *testing.T) {
+	ips := map[string][]string{
+		"free-turn-wg":     {"10.10.20.1/24"},
+		"Free_Turn_NEW_WG": {"10.10.30.1/24", "10.10.30.5/24"},
+		"wg-awg-server-1":  {"10.10.10.1/24"},
+	}
+	cases := []struct {
+		host string
+		want string
+	}{
+		{"10.10.20.1", "free-turn-wg"},
+		{"10.10.30.1", "Free_Turn_NEW_WG"},
+		{"10.10.30.5", "Free_Turn_NEW_WG"},
+		{"10.10.99.99", ""}, // нет совпадения
+		{"", ""},
+	}
+	for _, c := range cases {
+		if got := matchInterfaceName(ips, c.host); got != c.want {
+			t.Errorf("matchInterfaceName(%q) = %q, want %q", c.host, got, c.want)
+		}
+	}
+}

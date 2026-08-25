@@ -825,13 +825,153 @@ async bindPeer(id) {
     // последней загрузки (создание/импорт во вкладке WireGuard).
     await this.loadBindings();
 
-    const bindable =
+    // Живой список пиров ОБСЛУЖИВАЕМОГО интерфейса: keypair
+    // валиден только когда его пир есть в этом списке. Импорт
+    // ключа «чужого» пира или удаление пира вне панели могли
+    // оставить запись, которую нельзя предлагать для привязки.
+    let validPubs = null;
+
+    try {
+
+        const resp =
+            await fetch(
+                "/api/wireguard",
+                {
+                    credentials: "same-origin"
+                }
+            );
+
+        const data =
+            await resp.json();
+
+        if (
+            data &&
+            Array.isArray(data.peers) &&
+            data.peers.length
+        ) {
+
+            validPubs =
+                new Set(
+                    data.peers.map(
+                        p => p["public-key"]
+                    )
+                );
+
+        }
+
+    }
+    catch (error) {
+
+        console.error(
+            "[ClientsModule] live peers",
+            error
+        );
+
+    }
+
+    let bindable =
         this.bindings.filter(
             kp =>
                 !kp.client_id ||
                 kp.client_id === id
         );
 
+    const stray =
+        validPubs
+            ? bindable.filter(
+                kp => !validPubs.has(kp.public_key)
+              )
+            : [];
+
+    if (validPubs) {
+
+        bindable =
+            bindable.filter(
+                kp => validPubs.has(kp.public_key)
+            );
+
+    }
+
+    // Посторонние ключи (пир на другом интерфейсе или удалён
+    // вне панели): предлагаем убрать их из панели — роутер
+    // не затрагивается.
+    if (stray.length) {
+
+        const names =
+            stray
+                .map(
+                    kp =>
+                        kp.peer_name ||
+                        kp.comment ||
+                        kp.public_key.slice(0, 12)
+                )
+                .join(", ");
+
+        const clean =
+            await Dialog.confirm(
+                safeT("clients.stray_confirm_title"),
+                safeT("clients.stray_confirm_text") +
+                "\n\n" +
+                names
+            );
+
+        if (clean) {
+
+            for (const kp of stray) {
+
+                try {
+
+                    const resp =
+                        await fetch(
+                            "/api/wireguard/keypair/delete",
+                            {
+                                method: "POST",
+                                credentials: "same-origin",
+                                headers: {
+                                    "Content-Type": "application/json"
+                                },
+                                body: JSON.stringify({
+                                    public_key: kp.public_key
+                                })
+                            }
+                        );
+
+                    const data =
+                        await resp.json();
+
+                    if (data.status !== "ok") {
+
+                        this.mapBindError(data);
+
+                        return;
+
+                    }
+
+                }
+                catch (error) {
+
+                    console.error(
+                        "[ClientsModule] stray cleanup",
+                        error
+                    );
+
+                    await Dialog.alert(
+                        safeT("dialog.title_error"),
+                        error?.message ||
+                        safeT("clients.bind_error_message")
+                    );
+
+                    return;
+
+                }
+
+            }
+
+            await this.loadBindings();
+
+        }
+
+    }
 
     if (!bindable.length) {
 
