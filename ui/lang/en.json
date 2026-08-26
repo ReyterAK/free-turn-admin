@@ -401,6 +401,8 @@
 "routing.c_port_forward": "Port forwarding to the container (dst-nat)",
 "routing.c_port_forward_ok": "dst-nat rule found: port %s → %s",
 "routing.c_port_forward_missing": "No external port forwarding to the container (%s:%s). Clients from the internet will not reach the server. Pick the external port yourself and make sure the input chain does not block it.",
+"routing.c_port_forward_shadowed": "The forward for port %s is shadowed by rule %s (the first dst-nat on a port wins). Remove or disable the conflicting rule.",
+"routing.c_port_forward_service": "Port %s matches a RouterOS service port — the dst-nat to %s would shadow the service. Choose a different external port.",
 "routing.wg_iface": "WG interface",
 "routing.wg_iface_ok": "%s is running (%s, port %s)",
 "routing.wg_iface_none": "no interface matches the Backend server — check the server settings and create an interface.",

@@ -253,38 +253,12 @@ func toAddressesMatch(toAddresses string, ips []string) bool {
 
 // wanIP returns the IP of the interface carrying the main-table
 // default route ("" when undeterminable).
-func wanIP(routes []routeros.Route, addrs []routeros.Address) string {
-	gw := ""
-	for _, r := range routes {
-		if r.DstAddress == "0.0.0.0/0" &&
-			(r.RoutingTable == "" || r.RoutingTable == "main") {
-			gw = r.Gateway
-			break
-		}
-	}
-	if gw == "" {
-		return ""
-	}
-	for _, a := range addrs {
-		name := a.Interface
-		if name == "" {
-			name = a.ActualInterface
-		}
-		if name == gw {
-			return hostOf(a.Address)
-		}
-	}
-	return ""
-}
-
-// runRoutingChecks is the pure diagnostic engine: all data is
-// passed in, verdicts are returned. Testable with sample data.
 func runRoutingChecks(
 	ifaceName string, ifaceIPs []string, ifacePort int,
 	containerIPs []string, listenPort int, serverRunning bool, containerDefRoute string,
 	routes []routeros.Route, addrs []routeros.Address,
 	nat []routeros.NatRule, filter []routeros.FilterRule,
-	ifaceLists []string,
+	ifaceLists []string, svcPorts []int,
 ) []RoutingCheck {
 	var out []RoutingCheck
 
@@ -325,37 +299,57 @@ func runRoutingChecks(
 
 	// A3. external port forwarding (dst-nat to the container)
 	if serverRunning && listenPort > 0 && len(containerIPs) > 0 {
+		port := strconv.Itoa(listenPort)
+
+		// Проброс на контейнер: dst-nat с to-addresses=IP контейнера
+		// и to-ports=порт релея. Форма правила (dst-address=<WAN-IP>
+		// или in-interface-list=WAN) не важна — важны цель и порт.
+		// Первое dst-nat правило на этот порт выигрывает: если оно
+		// НЕ на контейнер — наш проброс затенён и не сработает.
 		found := false
+		shadowed := ""
 		for _, r := range nat {
-			if r.Chain != "dstnat" || r.Disabled {
+			if r.Chain != "dstnat" || r.Disabled || r.Action != "dst-nat" {
 				continue
 			}
-			if r.Action == "dst-nat" &&
-				toAddressesMatch(r.ToAddresses, containerIPs) &&
-				(r.ToPorts == "" || r.ToPorts == strconv.Itoa(listenPort)) {
+			// Пустой dst-port = правило матчит все порты.
+			if (r.DstPort != "" && r.DstPort != port) ||
+				(r.Protocol != "" && r.Protocol != "udp") {
+				continue
+			}
+			if toAddressesMatch(r.ToAddresses, containerIPs) &&
+				(r.ToPorts == "" || r.ToPorts == port) {
 				found = true
 				break
 			}
+			shadowed = r.ID
 		}
-		if found {
-			out = append(out, check("port_forward", "container", "ok",
-				"routing.c_port_forward", "routing.c_port_forward_ok",
-				[]string{strconv.Itoa(listenPort), containerIPs[0]}, nil))
-		} else {
-			wan := wanIP(routes, addrs)
-			if wan == "" {
-				wan = "<WAN-IP>"
-			}
+
+		switch {
+		case !found:
 			out = append(out, check("port_forward", "container", "warning",
 				"routing.c_port_forward", "routing.c_port_forward_missing",
-				[]string{strconv.Itoa(listenPort), containerIPs[0]},
+				[]string{port, containerIPs[0]},
 				[]string{
-					"/ip firewall nat add chain=dstnat dst-address=" + wan +
-						" protocol=udp dst-port=" + strconv.Itoa(listenPort) +
+					"/ip firewall nat add chain=dstnat in-interface-list=WAN" +
+						" protocol=udp dst-port=" + port +
 						" action=dst-nat to-addresses=" + containerIPs[0] +
-						" to-ports=" + strconv.Itoa(listenPort) +
+						" to-ports=" + port +
 						" comment=\"free-turn-external-port-forward\"",
 				}))
+		case shadowed != "":
+			out = append(out, check("port_forward", "container", "warning",
+				"routing.c_port_forward", "routing.c_port_forward_shadowed",
+				[]string{port, shadowed},
+				[]string{"/ip firewall nat remove " + shadowed}))
+		case slices.Contains(svcPorts, listenPort):
+			out = append(out, check("port_forward", "container", "warning",
+				"routing.c_port_forward", "routing.c_port_forward_service",
+				[]string{port, containerIPs[0]}, nil))
+		default:
+			out = append(out, check("port_forward", "container", "ok",
+				"routing.c_port_forward", "routing.c_port_forward_ok",
+				[]string{port, containerIPs[0]}, nil))
 		}
 	}
 
@@ -595,12 +589,15 @@ func (r *Router) wireguardRoutingDiagnostics(w http.ResponseWriter, req *http.Re
 		}
 	}
 
+	// Порты служб RouterOS: dst-nat на тот же порт затенял бы их.
+	svcPorts, _ := client.ListServicePorts()
+
 	checks := runRoutingChecks(
 		ifaceName, ifaceIPs, ifacePort,
 		containerIPv4s(), listenPort(), IsProxyRunning(),
 		containerDefaultRoute("/proc/net/route"),
 		routes, addrs, natRules, filterRules,
-		ifaceLists,
+		ifaceLists, svcPorts,
 	)
 
 	// Ошибки чтения — отдельным полем (проверки с неполными

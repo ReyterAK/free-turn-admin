@@ -374,6 +374,24 @@ func (c *Client) ListInterfaceListMembers() ([]InterfaceListMember, error) {
 	return out, nil
 }
 
+// ListServicePorts returns the TCP ports of enabled RouterOS services
+// (/ip/service) — a dst-nat on the same port would shadow them.
+func (c *Client) ListServicePorts() ([]int, error) {
+	var out []struct {
+		Port int `json:"port"`
+	}
+	if err := c.get("/ip/service", &out); err != nil {
+		return nil, err
+	}
+	ports := make([]int, 0, len(out))
+	for _, s := range out {
+		if s.Port > 0 {
+			ports = append(ports, s.Port)
+		}
+	}
+	return ports, nil
+}
+
 // AddPeer creates a WireGuard peer (public key + allowed address).
 func (c *Client) AddPeer(iface, publicKey, allowedAddress, comment string) error {
 	payload := map[string]any{

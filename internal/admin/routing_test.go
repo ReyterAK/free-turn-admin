@@ -91,6 +91,7 @@ func TestRoutingChecksOkPath(t *testing.T) {
 		[]string{"192.168.254.15"}, 55555, true, "eth0",
 		routes, addrs, nat, filter,
 		nil,
+		nil,
 	)
 
 	if c := findCheck(checks, "wg_route"); c == nil || c.Status != "ok" {
@@ -127,6 +128,7 @@ func TestRoutingChecksForwardDropOnly(t *testing.T) {
 		[]string{"192.168.254.15"}, 55555, true, "eth0",
 		routes, addrs, nat, f,
 		nil,
+		nil,
 	)
 	c := findCheck(checks, "wg_forward")
 	if c == nil || c.Status != "warning" || len(c.Commands) == 0 {
@@ -160,6 +162,7 @@ func TestRoutingChecksMissing(t *testing.T) {
 		[]string{"192.168.254.15"}, 55555, true, "eth0",
 		r2, addrs, n2, filter,
 		nil,
+		nil,
 	)
 	if c := findCheck(checks, "wg_route"); c == nil || c.Status != "warning" {
 		t.Errorf("wg_route = %+v, want warning", c)
@@ -173,6 +176,7 @@ func TestRoutingChecksNoInterface(t *testing.T) {
 	checks := runRoutingChecks(
 		"", nil, 0, []string{"192.168.254.15"}, 55555, true, "eth0",
 		nil, nil, nil, nil,
+		nil,
 		nil,
 	)
 	if c := findCheck(checks, "wg_iface"); c == nil || c.Status != "error" {
@@ -202,9 +206,55 @@ func TestRoutingPortForwardMatch(t *testing.T) {
 		[]string{"192.168.254.15"}, 55555, true, "eth0",
 		routes, addrs, nat, filter,
 		nil,
+		nil,
 	)
 	if c := findCheck(checks, "port_forward"); c == nil || c.Status != "ok" {
 		t.Errorf("port_forward = %+v, want ok", c)
+	}
+}
+
+// Другой dst-nat на тот же порт раньше нашего — проброс затенён.
+func TestRoutingPortForwardShadowed(t *testing.T) {
+	routes, addrs, nat, filter := sampleRoutingData()
+	nat = append(nat,
+		routeros.NatRule{ID: "*S1", Chain: "dstnat", Action: "dst-nat",
+			DstPort: "55555", Protocol: "udp", ToAddresses: "10.0.0.5"},
+		routeros.NatRule{ID: "*S2", Chain: "dstnat", Action: "dst-nat",
+			DstPort: "55555", Protocol: "udp",
+			ToAddresses: "192.168.254.15", ToPorts: "55555"},
+	)
+	checks := runRoutingChecks(
+		"Free_Turn_NEW_WG", []string{"10.10.30.1/24"}, 25083,
+		[]string{"192.168.254.15"}, 55555, true, "eth0",
+		routes, addrs, nat, filter,
+		nil,
+		nil,
+	)
+	c := findCheck(checks, "port_forward")
+	if c == nil || c.Status != "warning" || len(c.Commands) != 1 ||
+		!strings.Contains(c.Commands[0], "remove *S1") {
+		t.Fatalf("port_forward = %+v, want warning shadowed by *S1", c)
+	}
+}
+
+// Порт занят службой RouterOS — предупредить (проброс затеняет службу).
+func TestRoutingPortForwardServiceConflict(t *testing.T) {
+	routes, addrs, nat, filter := sampleRoutingData()
+	nat = append(nat, routeros.NatRule{
+		Chain: "dstnat", Action: "dst-nat",
+		DstPort: "55555", Protocol: "udp",
+		ToAddresses: "192.168.254.15", ToPorts: "55555",
+	})
+	checks := runRoutingChecks(
+		"Free_Turn_NEW_WG", []string{"10.10.30.1/24"}, 25083,
+		[]string{"192.168.254.15"}, 55555, true, "eth0",
+		routes, addrs, nat, filter,
+		nil,
+		[]int{80, 55555},
+	)
+	c := findCheck(checks, "port_forward")
+	if c == nil || c.Status != "warning" || c.DetailKey != "routing.c_port_forward_service" {
+		t.Fatalf("port_forward = %+v, want warning service conflict", c)
 	}
 }
 
@@ -219,6 +269,7 @@ func TestRoutingChecksSubnetDrop(t *testing.T) {
 		"Free_Turn_NEW_WG", []string{"10.10.30.1/24"}, 25083,
 		[]string{"192.168.254.15"}, 55555, true, "eth0",
 		routes, addrs, nat, filter,
+		nil,
 		nil,
 	)
 	c := findCheck(checks, "wg_forward")
@@ -240,6 +291,7 @@ func TestRoutingChecksBlanketAccept(t *testing.T) {
 		"Free_Turn_NEW_WG", []string{"10.10.30.1/24"}, 25083,
 		[]string{"192.168.254.15"}, 55555, true, "eth0",
 		routes, addrs, nat, filter,
+		nil,
 		nil,
 	)
 	c := findCheck(checks, "wg_forward")
@@ -267,6 +319,7 @@ func TestRoutingChecksIfaceInWanListUDPOnly(t *testing.T) {
 		[]string{"192.168.254.15"}, 55555, true, "eth0",
 		routes, addrs, nat, filter,
 		[]string{"WAN"},
+		nil,
 	)
 	c := findCheck(checks, "wg_forward")
 	if c == nil || c.Status != "warning" {
@@ -296,6 +349,7 @@ func TestRoutingChecksIpsecRulesNotBlanket(t *testing.T) {
 		[]string{"192.168.254.15"}, 55555, true, "eth0",
 		routes, addrs, nat, filter,
 		[]string{"WAN"},
+		nil,
 	)
 	c := findCheck(checks, "wg_forward")
 	if c == nil || c.Status != "warning" {
