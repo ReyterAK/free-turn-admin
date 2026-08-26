@@ -190,6 +190,19 @@ const App = {
 
         }
 
+        // Настройки сервера перечитываются при каждом показе: создание
+        // WG-интерфейса автообновляет Backend (-connect в run.args),
+        // и форма должна показывать свежие значения, а не устаревшие
+        // (иначе сохранение затирает авто-обновление).
+        if (
+            name === "server" &&
+            window.ServerModule
+        ) {
+
+            ServerModule.refresh();
+
+        }
+
         if (
             name === "routing" &&
             window.RoutingModule
