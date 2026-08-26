@@ -366,7 +366,7 @@
 "wg.import_key_format": "Does not look like a WireGuard private key: expected a base64 string (44 chars, usually ending with =).",
 "wg.import_success": "Key imported",
 "wg.error.invalid_private_key": "Invalid private key (expected base64, 32 bytes).",
-"wg.error.peer_not_found": "No router peer matches this public key. Check that the key belongs to a peer of this interface.",
+"wg.error.peer_not_found": "No router peer matches the public key derived from your private key. Check that the key belongs to a peer of this interface.",
 "wg.error.keypair_exists": "This peer already has a key — no import needed.",
 "wg.error.peer_keypair_not_found": "This peer has no panel key. Create or import a key first.",
 "wg.error.client_not_found": "Client not found.",
