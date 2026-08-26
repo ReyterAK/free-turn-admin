@@ -268,7 +268,7 @@
 "status.ip_unavailable": "IP недоступен",
 "status.unknown": "Неизвестно",
 "tabs.wireguard": "WireGuard",
-"tabs.routing": "Маршрутизация",
+"tabs.routing": "Диагностика",
 "wg.title": "WireGuard (RouterOS)",
 "wg.url": "URL RouterOS REST",
 "wg.user": "Пользователь",
