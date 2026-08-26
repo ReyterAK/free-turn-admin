@@ -355,6 +355,13 @@
             </div>
 
             <div
+                id="wg-denied"
+                class="wg-error-banner"
+                style="display: none;"
+                data-i18n="wg.write_denied">
+            </div>
+
+            <div
                 id="wg-backend-line"
                 class="wg-backend-line"
                 style="display: none;">
@@ -391,6 +398,7 @@
 
                 <button
                     type="button"
+                    id="wg-create-iface-missing"
                     onclick="WireGuardModule.showCreateForm(true)"
                     data-i18n="wg.iface_create">
 

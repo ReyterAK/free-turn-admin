@@ -331,6 +331,7 @@
 "wg.iface_err_address": "Invalid address (e.g. 10.10.30.1/24).",
 "wg.iface_port_conflict": "Port %d is already used by interface %s. Choose another port.",
 "wg.iface_err_write": "Insufficient write rights. Use a user with the write policy (user-rest-api-rw).",
+"wg.write_denied": "Router writes denied (insufficient permissions). Management buttons hidden. Reload the page after changing the RouterOS API user permissions.",
 "wg.iface_created_title": "Interface created",
 "wg.iface_created_text": "Interface %s created on the router.\nAddress: %s\nPort: %s\nPublic key (for client configs):\n%s",
 "wg.iface_backend_updated": "Backend server updated automatically",

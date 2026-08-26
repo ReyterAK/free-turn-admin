@@ -8,6 +8,11 @@
 
 const WireGuardModule = {
 
+    // writeDenied: set after a RouterOS write is rejected for lack
+    // of permissions; hides management buttons until the page reloads
+    // (the panel cannot discover the API user's permission level).
+    writeDenied: false,
+
 //
 // lifecycle
 //
@@ -523,6 +528,8 @@ async createInterface() {
                     safeT("wg.iface_err_write")
                 );
 
+                this.markWriteDenied();
+
                 return;
 
             }
@@ -908,6 +915,8 @@ mapPeerError(data) {
                 safeT("wg.iface_err_write")
             );
 
+            this.markWriteDenied();
+
             return;
 
         }
@@ -1125,6 +1134,8 @@ async deleteInterface() {
                     safeT("wg.iface_err_write"),
                     "error"
                 );
+
+                this.markWriteDenied();
 
                 return;
 
@@ -1703,6 +1714,16 @@ updateCreateDeleteButton(ifaceName) {
     if (!btn)
         return;
 
+    if (this.writeDenied) {
+
+        btn.style.display = "none";
+
+        return;
+
+    }
+
+    btn.style.display = "";
+
     if (ifaceName) {
 
         btn.textContent =
@@ -1729,6 +1750,59 @@ updateCreateDeleteButton(ifaceName) {
 
     this.currentIfaceName =
         null;
+
+},
+
+//
+// write permission tracking
+//
+
+// markWriteDenied remembers that a RouterOS write was rejected for
+// lack of permissions and hides the management buttons until the
+// page is reloaded (the panel cannot discover the API user's
+// permission level any other way).
+markWriteDenied() {
+
+    if (this.writeDenied)
+        return;
+
+    this.writeDenied = true;
+
+    this.renderWriteState();
+
+    // Перерисовать таблицы: убрать «Ротировать ключ»/«Удалить»
+    // из уже отрисованных строк.
+    this.refresh();
+
+},
+
+renderWriteState() {
+
+    const banner =
+        document.getElementById(
+            "wg-denied"
+        );
+
+    if (banner)
+        banner.style.display =
+            this.writeDenied ? "block" : "none";
+
+    // Write-кнопки: создание/удаление интерфейса, создание пира
+    // (включая кнопку в состоянии ip_not_found).
+    for (const id of [
+        "wg-create-iface",
+        "wg-create-iface-missing",
+        "wg-create-peer"
+    ]) {
+
+        const el =
+            document.getElementById(id);
+
+        if (el)
+            el.style.display =
+                this.writeDenied ? "none" : "";
+
+    }
 
 },
 
@@ -1928,12 +2002,17 @@ actionsCell(peer) {
             )
         );
 
-        cell.appendChild(
-            this.actionButton(
-                safeT("wg.rotate_key_btn"),
-                () => this.rotatePeerKey(pub, name)
-            )
-        );
+        // Ротация — запись на роутер: скрыта после отказа в правах.
+        if (!this.writeDenied) {
+
+            cell.appendChild(
+                this.actionButton(
+                    safeT("wg.rotate_key_btn"),
+                    () => this.rotatePeerKey(pub, name)
+                )
+            );
+
+        }
 
     }
     else {
@@ -1947,13 +2026,17 @@ actionsCell(peer) {
 
     }
 
-    // Удаление доступно всем пирам таблицы.
-    cell.appendChild(
-        this.actionButton(
-            safeT("wg.delete_peer_btn"),
-            () => this.deletePeer(pub, name, peer)
-        )
-    );
+    // Удаление — запись на роутер; скрыто после отказа в правах.
+    if (!this.writeDenied) {
+
+        cell.appendChild(
+            this.actionButton(
+                safeT("wg.delete_peer_btn"),
+                () => this.deletePeer(pub, name, peer)
+            )
+        );
+
+    }
 
     return cell;
 
@@ -2274,6 +2357,21 @@ mapImportError(data) {
     ) {
 
         // classifyRouterOSError (auth/permission/unreachable)
+        if (data.error.kind === "permission") {
+
+            this.markWriteDenied();
+
+            this.showMsg(
+                safeT("wg.err_permission") +
+                " " +
+                (data.error.detail || ""),
+                "error"
+            );
+
+            return;
+
+        }
+
         this.showMsg(
             safeT("wg.err_unreachable") +
             " " +
