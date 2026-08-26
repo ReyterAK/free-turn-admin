@@ -90,6 +90,7 @@ func TestRoutingChecksOkPath(t *testing.T) {
 		"Free_Turn_NEW_WG", []string{"10.10.30.1/24"}, 25083,
 		[]string{"192.168.254.15"}, 55555, true, "eth0",
 		routes, addrs, nat, filter,
+		nil,
 	)
 
 	if c := findCheck(checks, "wg_route"); c == nil || c.Status != "ok" {
@@ -125,6 +126,7 @@ func TestRoutingChecksForwardDropOnly(t *testing.T) {
 		"Free_Turn_NEW_WG", []string{"10.10.30.1/24"}, 25083,
 		[]string{"192.168.254.15"}, 55555, true, "eth0",
 		routes, addrs, nat, f,
+		nil,
 	)
 	c := findCheck(checks, "wg_forward")
 	if c == nil || c.Status != "warning" || len(c.Commands) == 0 {
@@ -157,6 +159,7 @@ func TestRoutingChecksMissing(t *testing.T) {
 		"Free_Turn_NEW_WG", []string{"10.10.30.1/24"}, 25083,
 		[]string{"192.168.254.15"}, 55555, true, "eth0",
 		r2, addrs, n2, filter,
+		nil,
 	)
 	if c := findCheck(checks, "wg_route"); c == nil || c.Status != "warning" {
 		t.Errorf("wg_route = %+v, want warning", c)
@@ -170,6 +173,7 @@ func TestRoutingChecksNoInterface(t *testing.T) {
 	checks := runRoutingChecks(
 		"", nil, 0, []string{"192.168.254.15"}, 55555, true, "eth0",
 		nil, nil, nil, nil,
+		nil,
 	)
 	if c := findCheck(checks, "wg_iface"); c == nil || c.Status != "error" {
 		t.Errorf("wg_iface = %+v, want error", c)
@@ -197,6 +201,7 @@ func TestRoutingPortForwardMatch(t *testing.T) {
 		"Free_Turn_NEW_WG", []string{"10.10.30.1/24"}, 25083,
 		[]string{"192.168.254.15"}, 55555, true, "eth0",
 		routes, addrs, nat, filter,
+		nil,
 	)
 	if c := findCheck(checks, "port_forward"); c == nil || c.Status != "ok" {
 		t.Errorf("port_forward = %+v, want ok", c)
@@ -214,6 +219,7 @@ func TestRoutingChecksSubnetDrop(t *testing.T) {
 		"Free_Turn_NEW_WG", []string{"10.10.30.1/24"}, 25083,
 		[]string{"192.168.254.15"}, 55555, true, "eth0",
 		routes, addrs, nat, filter,
+		nil,
 	)
 	c := findCheck(checks, "wg_forward")
 	if c == nil || c.Status != "warning" {
@@ -234,9 +240,65 @@ func TestRoutingChecksBlanketAccept(t *testing.T) {
 		"Free_Turn_NEW_WG", []string{"10.10.30.1/24"}, 25083,
 		[]string{"192.168.254.15"}, 55555, true, "eth0",
 		routes, addrs, nat, filter,
+		nil,
 	)
 	c := findCheck(checks, "wg_forward")
 	if c == nil || c.Status != "ok" {
 		t.Fatalf("wg_forward = %+v, want ok (blanket accept covers the subnet)", c)
+	}
+}
+
+// Сценарий пользователя: WG-интерфейс в списке WAN, accept по списку
+// только для UDP (awg-паттерн *1A), defconf-дроп «drop all from WAN».
+// TCP/ICMP клиента режутся — движок должен дать warning с командой
+// accept по интерфейсу перед дропом.
+func TestRoutingChecksIfaceInWanListUDPOnly(t *testing.T) {
+	routes, addrs, nat, _ := sampleRoutingData()
+	filter := []routeros.FilterRule{
+		{ID: "*E", Chain: "forward", Action: "reject", Protocol: "tcp", DstAddressList: "vue"},
+		{ID: "*1A", Chain: "forward", Action: "accept", InInterfaceList: "WAN", Protocol: "udp"},
+		{ID: "*6", Chain: "forward", Action: "accept", IpsecPolicy: "in"},
+		{ID: "*7", Chain: "forward", Action: "accept", IpsecPolicy: "out"},
+		{ID: "*9", Chain: "forward", Action: "accept", ConnectionState: "established,related,untracked"},
+		{ID: "*B", Chain: "forward", Action: "drop", InInterfaceList: "WAN"},
+	}
+	checks := runRoutingChecks(
+		"free-turn-wireguard", []string{"10.10.20.1/24"}, 51820,
+		[]string{"192.168.254.15"}, 55555, true, "eth0",
+		routes, addrs, nat, filter,
+		[]string{"WAN"},
+	)
+	c := findCheck(checks, "wg_forward")
+	if c == nil || c.Status != "warning" {
+		t.Fatalf("wg_forward = %+v, want warning (UDP-only accept, drop from WAN)", c)
+	}
+	if len(c.Commands) != 1 ||
+		!strings.Contains(c.Commands[0], "in-interface=free-turn-wireguard") ||
+		!strings.Contains(c.Commands[0], "place-before=*B") {
+		t.Errorf("wg_forward commands = %v, want accept in-interface place-before=*B", c.Commands)
+	}
+	if len(c.Params) < 4 || c.Params[3] != "WAN" {
+		t.Errorf("wg_forward params = %v, want list WAN", c.Params)
+	}
+}
+
+// ipsec-правила (accept in/out ipsec policy) НЕ покрывают клиентский
+// трафик: движок не должен считать их blanket-accept'ом.
+func TestRoutingChecksIpsecRulesNotBlanket(t *testing.T) {
+	routes, addrs, nat, _ := sampleRoutingData()
+	filter := []routeros.FilterRule{
+		{ID: "*6", Chain: "forward", Action: "accept", IpsecPolicy: "in"},
+		{ID: "*7", Chain: "forward", Action: "accept", IpsecPolicy: "out"},
+		{ID: "*B", Chain: "forward", Action: "drop", InInterfaceList: "WAN"},
+	}
+	checks := runRoutingChecks(
+		"free-turn-wireguard", []string{"10.10.20.1/24"}, 51820,
+		[]string{"192.168.254.15"}, 55555, true, "eth0",
+		routes, addrs, nat, filter,
+		[]string{"WAN"},
+	)
+	c := findCheck(checks, "wg_forward")
+	if c == nil || c.Status != "warning" {
+		t.Fatalf("wg_forward = %+v, want warning (ipsec accepts don't cover client traffic)", c)
 	}
 }

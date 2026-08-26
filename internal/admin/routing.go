@@ -19,6 +19,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -168,7 +169,7 @@ func blanketRule(r routeros.FilterRule) bool {
 		r.SrcAddressList == "" && r.DstAddressList == "" &&
 		r.InInterface == "" && r.OutInterface == "" &&
 		r.InInterfaceList == "" && r.OutInterfaceList == "" &&
-		r.ConnectionState == ""
+		r.ConnectionState == "" && r.IpsecPolicy == ""
 }
 
 // ruleMatchesSubnet reports whether a rule touches the WG subnet:
@@ -185,6 +186,28 @@ func ruleMatchesSubnet(r routeros.FilterRule, subnet, iface string) bool {
 		return true
 	}
 	if iface != "" && (r.InInterface == iface || r.OutInterface == iface) {
+		return true
+	}
+	return false
+}
+
+// coversClientTraffic reports whether a rule applies to NEW client
+// connections entering through the WG interface: unconstrained
+// (blanket) rules, address rules covering the subnet, rules scoped
+// to the interface, or rules scoped to an interface list the
+// interface belongs to. Connection-state and ipsec-policy rules do
+// NOT cover new client traffic.
+func coversClientTraffic(r routeros.FilterRule, subnet, iface string, ifaceLists []string) bool {
+	if r.ConnectionState != "" || r.IpsecPolicy != "" {
+		return false
+	}
+	if blanketRule(r) {
+		return true
+	}
+	if ruleMatchesSubnet(r, subnet, iface) {
+		return true
+	}
+	if r.InInterfaceList != "" && slices.Contains(ifaceLists, r.InInterfaceList) {
 		return true
 	}
 	return false
@@ -261,6 +284,7 @@ func runRoutingChecks(
 	containerIPs []string, listenPort int, serverRunning bool, containerDefRoute string,
 	routes []routeros.Route, addrs []routeros.Address,
 	nat []routeros.NatRule, filter []routeros.FilterRule,
+	ifaceLists []string,
 ) []RoutingCheck {
 	var out []RoutingCheck
 
@@ -400,32 +424,70 @@ func runRoutingChecks(
 			}))
 	}
 
-	// B4. firewall forward: an accept for the subnet BEFORE any
-	// blocking rule (blanket or subnet-scoped drop/reject);
-	// otherwise recommend inserting before the blanket drop, or
-	// removing the subnet-scoped drop.
+	// B4. firewall forward: the client's NEW connections from the WG
+	// interface must hit an accept before any drop/reject that covers
+	// them. Coverage includes interface-list scoping: if the WG
+	// interface sits in a list a drop targets (defconf "drop all from
+	// WAN"), only an accept before it saves the traffic — and an
+	// accept restricted to UDP does NOT cover TCP/ICMP.
 	forwardOK := false
 	blockID := ""
 	blockBlanket := false
+	blockByList := false
+	blockList := ""
+	udpOnlyAcceptID := ""
 	for _, r := range filter {
 		if r.Chain != "forward" || r.Disabled {
 			continue
 		}
-		if (r.Action == "drop" || r.Action == "reject") &&
-			(blanketRule(r) || ruleMatchesSubnet(r, subnet, ifaceName)) {
-			blockID = r.ID
-			blockBlanket = blanketRule(r)
-			break
+		if !coversClientTraffic(r, subnet, ifaceName, ifaceLists) {
+			continue
 		}
-		if r.Action == "accept" &&
-			(blanketRule(r) || ruleMatchesSubnet(r, subnet, ifaceName)) {
-			forwardOK = true
-			break
+		if r.Action == "drop" || r.Action == "reject" {
+			if r.Protocol == "" || r.Protocol == "tcp" {
+				blockID = r.ID
+				blockBlanket = blanketRule(r)
+				blockByList = r.InInterfaceList != "" &&
+					slices.Contains(ifaceLists, r.InInterfaceList)
+				blockList = r.InInterfaceList
+				break
+			}
+			continue
+		}
+		if r.Action == "accept" {
+			if r.Protocol == "" || r.Protocol == "tcp" {
+				forwardOK = true
+				break
+			}
+			if r.Protocol == "udp" && udpOnlyAcceptID == "" {
+				udpOnlyAcceptID = r.ID
+			}
 		}
 	}
 	if forwardOK {
 		out = append(out, check("wg_forward", "wg", "ok",
 			"routing.wg_forward", "routing.wg_forward_ok", []string{subnet}, nil))
+	} else if blockID != "" && blockByList {
+		// Интерфейс в списке, который режет блокирующее правило:
+		// лечится accept'ом по интерфейсу перед ним (не удалением
+		// правила — это часто defconf-защита WAN).
+		if udpOnlyAcceptID != "" {
+			out = append(out, check("wg_forward", "wg", "warning",
+				"routing.wg_forward", "routing.wg_forward_udp_only",
+				[]string{udpOnlyAcceptID, blockID, ifaceName, blockList},
+				[]string{
+					"/ip firewall filter add chain=forward action=accept in-interface=" + ifaceName +
+						" comment=\"free-turn-wg-fwd-accept\" place-before=" + blockID,
+				}))
+		} else {
+			out = append(out, check("wg_forward", "wg", "warning",
+				"routing.wg_forward", "routing.wg_forward_list_blocked",
+				[]string{blockID, ifaceName, blockList},
+				[]string{
+					"/ip firewall filter add chain=forward action=accept in-interface=" + ifaceName +
+						" comment=\"free-turn-wg-fwd-accept\" place-before=" + blockID,
+				}))
+		}
 	} else if blockID != "" && blockBlanket {
 		out = append(out, check("wg_forward", "wg", "warning",
 			"routing.wg_forward", "routing.wg_forward_before_drop", []string{subnet, blockID},
@@ -520,11 +582,25 @@ func (r *Router) wireguardRoutingDiagnostics(w http.ResponseWriter, req *http.Re
 		}
 	}
 
+	// Списки интерфейсов: интерфейс WG может сидеть в списке (напр.
+	// WAN), который defconf-правило «drop all from WAN» режет.
+	ifaceLists := []string{}
+	if ifaceName != "" {
+		if members, err := client.ListInterfaceListMembers(); err == nil {
+			for _, m := range members {
+				if m.Interface == ifaceName {
+					ifaceLists = append(ifaceLists, m.List)
+				}
+			}
+		}
+	}
+
 	checks := runRoutingChecks(
 		ifaceName, ifaceIPs, ifacePort,
 		containerIPv4s(), listenPort(), IsProxyRunning(),
 		containerDefaultRoute("/proc/net/route"),
 		routes, addrs, natRules, filterRules,
+		ifaceLists,
 	)
 
 	// Ошибки чтения — отдельным полем (проверки с неполными

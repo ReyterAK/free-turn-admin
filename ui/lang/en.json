@@ -415,6 +415,8 @@
 "routing.wg_forward_ok": "traffic of %s is allowed (accept before the blocking rule)",
 "routing.wg_forward_before_drop": "no accept rule for %s before the blocking rule %s — the subnet traffic is dropped. Insert rules BEFORE the drop.",
 "routing.wg_forward_subnet_blocked": "rule %s blocks subnet %s (address-scoped drop/reject) — the subnet traffic is dropped. Remove or edit the rule.",
+"routing.wg_forward_udp_only": "client traffic is accepted only over UDP (rule %s); TCP/ICMP is blocked by rule %s — interface %s is in list %s. Add an accept for the interface before the blocking rule.",
+"routing.wg_forward_list_blocked": "client traffic is blocked by rule %s — interface %s is in list %s which the rule drops. Add an accept for the interface before the blocking rule (do not remove it — it may be WAN protection).",
 "routing.wg_forward_default": "no explicit accept for %s and no final drop-all — traffic most likely passes (chain default action).",
 "routing.wg_input": "Firewall: input (WG port)",
 "routing.wg_input_ok": "port %s is not blocked by explicit rules",

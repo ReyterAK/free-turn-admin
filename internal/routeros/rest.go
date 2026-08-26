@@ -310,6 +310,7 @@ type FilterRule struct {
 	InInterfaceList  string  `json:"in-interface-list"`
 	OutInterfaceList string  `json:"out-interface-list"`
 	ConnectionState  string  `json:"connection-state"`
+	IpsecPolicy      string  `json:"ipsec-policy"`
 	Comment          string  `json:"comment"`
 	Disabled         rosBool `json:"disabled"`
 }
@@ -351,6 +352,23 @@ func (c *Client) ListFilterRules() ([]FilterRule, error) {
 func (c *Client) ListNatRules() ([]NatRule, error) {
 	var out []NatRule
 	if err := c.get("/ip/firewall/nat", &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// InterfaceListMember is one entry of /interface/list/member.
+type InterfaceListMember struct {
+	List      string `json:"list"`
+	Interface string `json:"interface"`
+}
+
+// ListInterfaceListMembers returns all interface-list memberships
+// (e.g. which interfaces sit in the "WAN" list — matters for the
+// defconf "drop all from WAN" rule).
+func (c *Client) ListInterfaceListMembers() ([]InterfaceListMember, error) {
+	var out []InterfaceListMember
+	if err := c.get("/interface/list/member", &out); err != nil {
 		return nil, err
 	}
 	return out, nil
