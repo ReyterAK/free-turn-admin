@@ -499,6 +499,55 @@ async createInterface() {
 
             await this.refresh();
 
+            // Backend сменился и сервер перезапущен — статус-карточка
+            // осталась бы с устаревшей пробой («Порт недоступен» до
+            // ручного «Обновить статус»). Показываем «перезапуск» и
+            // перепроверяем backend-статус, пока он не станет
+            // определённым (available / port_unavailable / ip_unavailable).
+            if (created.backend_updated) {
+
+                if (
+                    window.StatusModule &&
+                    typeof StatusModule.showRestarting === "function"
+                ) {
+
+                    StatusModule.showRestarting();
+
+                }
+
+                for (let attempt = 0; attempt < 6; attempt++) {
+
+                    await new Promise(r => setTimeout(r, 1500));
+
+                    if (
+                        window.StatusModule &&
+                        typeof StatusModule.refresh === "function"
+                    ) {
+
+                        await StatusModule.refresh();
+
+                    }
+
+                    const st =
+                        window.Store && Store.get("status");
+
+                    const bs =
+                        st && st.backend;
+
+                    if (
+                        bs &&
+                        bs.status &&
+                        bs.status !== "unknown"
+                    ) {
+
+                        break;
+
+                    }
+
+                }
+
+            }
+
             return;
 
         }
