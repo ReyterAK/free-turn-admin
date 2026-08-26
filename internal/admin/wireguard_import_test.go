@@ -9,7 +9,11 @@
 
 package admin
 
-import "testing"
+import (
+	"testing"
+
+	"freeturn/admin/internal/routeros"
+)
 
 func TestParsePrivateKeyValid(t *testing.T) {
 	priv := "xTpMGcwMD1tkEfkg+ADPO0xl6rwYRfF5Ics5QdZLAj8="
@@ -46,5 +50,31 @@ func TestParsePrivateKeyInvalid(t *testing.T) {
 		if pub, err := parsePrivateKey(c); err == nil {
 			t.Errorf("parsePrivateKey(%q) = %q, want error", c, pub)
 		}
+	}
+}
+
+func TestPreferMatchedPeer(t *testing.T) {
+	other := routeros.Peer{Name: "peer-other", Interface: "wg-other", PublicKey: "K"}
+	served := routeros.Peer{Name: "peer-served", Interface: "wg-served", PublicKey: "K"}
+
+	// ключ только на обслуживаемом интерфейсе
+	if got := preferMatchedPeer([]routeros.Peer{served}, "wg-served"); got == nil || got.Name != "peer-served" {
+		t.Errorf("preferMatchedPeer(served only) = %+v, want peer-served", got)
+	}
+
+	// дубль: сначала чужой интерфейс, потом обслуживаемый — берём обслуживаемый
+	got := preferMatchedPeer([]routeros.Peer{other, served}, "wg-served")
+	if got == nil || got.Name != "peer-served" {
+		t.Errorf("preferMatchedPeer(dup, other first) = %+v, want peer-served", got)
+	}
+
+	// ключ только на чужом интерфейсе — nil
+	if got := preferMatchedPeer([]routeros.Peer{other}, "wg-served"); got != nil {
+		t.Errorf("preferMatchedPeer(other only) = %+v, want nil", got)
+	}
+
+	// пустой список — nil
+	if got := preferMatchedPeer(nil, "wg-served"); got != nil {
+		t.Errorf("preferMatchedPeer(empty) = %+v, want nil", got)
 	}
 }

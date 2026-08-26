@@ -24,6 +24,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -130,6 +131,19 @@ func matchInterfaceName(ipsByIface map[string][]string, backendHost string) stri
 		}
 	}
 	return ""
+}
+
+// preferMatchedPeer picks the peer on the served interface from a
+// list of peers sharing one public key (duplicated keys are legal
+// on RouterOS). Returns nil when the key only exists on other
+// interfaces.
+func preferMatchedPeer(matches []routeros.Peer, matchedName string) *routeros.Peer {
+	for i := range matches {
+		if matches[i].Interface == matchedName {
+			return &matches[i]
+		}
+	}
+	return nil
 }
 
 // wireguardStatus reports the backend-matched WireGuard state.
@@ -770,35 +784,11 @@ func (r *Router) wireguardImportPeer(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	client := routeros.New(cfg.URL, cfg.User, cfg.Pass, 6*time.Second)
-	peers, err := client.ListPeers()
-	if err != nil {
-		writeJSONStatus(w, http.StatusBadGateway, map[string]any{
-			"status": "error",
-			"error":  classifyRouterOSError(err),
-		})
-		return
-	}
-	var found *routeros.Peer
-	for i := range peers {
-		if peers[i].PublicKey == pub {
-			found = &peers[i]
-			break
-		}
-	}
-	if found == nil {
-		writeJSONStatus(w, http.StatusNotFound, map[string]any{
-			"status": "error",
-			"error":  "peer_not_found",
-		})
-		return
-	}
-
 	// Панель обслуживает ОДИН интерфейс — тот, что совпадает с
 	// Backend. Ключ пира с ДРУГОГО интерфейса импортировать нельзя
 	// (иначе в панели появляется «чужой» пир, недостижимый для
 	// управления). Проверка по IP Backend против IP интерфейсов.
-	backendHost, _, backendOK := backendHostPort()
+	backendHost, backendPort, backendOK := backendHostPort()
 	if !backendOK {
 		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
 			"status": "error",
@@ -806,6 +796,7 @@ func (r *Router) wireguardImportPeer(w http.ResponseWriter, req *http.Request) {
 		})
 		return
 	}
+	client := routeros.New(cfg.URL, cfg.User, cfg.Pass, 6*time.Second)
 	addrs, err := client.ListAddresses()
 	if err != nil {
 		writeJSONStatus(w, http.StatusBadGateway, map[string]any{
@@ -822,10 +813,56 @@ func (r *Router) wireguardImportPeer(w http.ResponseWriter, req *http.Request) {
 		})
 		return
 	}
-	if found.Interface != matchedName {
+
+	peers, err := client.ListPeers()
+	if err != nil {
+		writeJSONStatus(w, http.StatusBadGateway, map[string]any{
+			"status": "error",
+			"error":  classifyRouterOSError(err),
+		})
+		return
+	}
+	// Все пиры с этим ключом (ключ может быть продублирован на
+	// нескольких пирах/интерфейсах). Импортируем пира ИМЕННО
+	// обслуживаемого интерфейса; если ключ есть и там, и на чужом
+	// интерфейсе — берём обслуживаемый.
+	var matches []routeros.Peer
+	for i := range peers {
+		if peers[i].PublicKey == pub {
+			matches = append(matches, peers[i])
+		}
+	}
+	if len(matches) == 0 {
+		writeJSONStatus(w, http.StatusNotFound, map[string]any{
+			"status": "error",
+			"error":  "peer_not_found",
+		})
+		return
+	}
+	found := preferMatchedPeer(matches, matchedName)
+	if found == nil {
+		// Ключ есть только на других интерфейсах — подсказываем
+		// админу, где именно он нашёлся (и если он продублирован).
+		ifaceSet := map[string]bool{}
+		for _, m := range matches {
+			ifaceSet[m.Interface] = true
+		}
+		ifaces := make([]string, 0, len(ifaceSet))
+		for i := range ifaceSet {
+			ifaces = append(ifaces, i)
+		}
+		sort.Strings(ifaces)
 		writeJSONStatus(w, http.StatusBadRequest, map[string]any{
 			"status": "error",
 			"error":  "peer_on_other_interface",
+			"detail": map[string]any{
+				"peer_name":        matches[0].Name,
+				"peer_interface":   matches[0].Interface,
+				"served_interface": matchedName,
+				"backend":          backendHost + ":" + strconv.Itoa(backendPort),
+				"duplicates":       len(matches),
+				"interfaces":       ifaces,
+			},
 		})
 		return
 	}

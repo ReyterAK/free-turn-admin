@@ -2383,10 +2383,41 @@ mapImportError(data) {
 
     }
 
+    if (data.error === "peer_on_other_interface") {
+
+        const d = data.detail || {};
+
+        let msg =
+            safeT("wg.error.peer_on_other_interface")
+                .replace("%s", d.peer_name || "?")
+                .replace("%s", d.peer_interface || "?")
+                .replace("%s", d.served_interface || "?")
+                .replace("%s", d.backend || "?");
+
+        if ((d.duplicates || 0) > 1) {
+
+            msg +=
+                "\n\n" +
+                safeT("wg.error.peer_key_duplicated")
+                    .replace("%d", String(d.duplicates))
+                    .replace("%s", (d.interfaces || []).join(", "));
+
+        }
+
+        this.showMsg(
+            msg,
+            "error"
+        );
+
+        return;
+
+    }
+
     const map = {
         invalid_private_key: "wg.error.invalid_private_key",
         peer_not_found: "wg.error.peer_not_found",
-        keypair_exists: "wg.error.keypair_exists"
+        keypair_exists: "wg.error.keypair_exists",
+        backend_interface_not_found: "wg.error.backend_interface_not_found"
     };
 
     this.showMsg(
