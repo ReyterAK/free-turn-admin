@@ -271,7 +271,7 @@
 "tabs.routing": "Diagnostics",
 "wg.title": "WireGuard (RouterOS)",
 "wg.url": "RouterOS REST URL",
-"wg.user": "User",
+"wg.user": "RouterOS API user",
 "wg.pass": "Password",
 "wg.poll": "Refresh interval (sec)",
 "wg.save": "Save connection",
