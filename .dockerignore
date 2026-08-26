@@ -4,3 +4,6 @@ venv/
 __pycache__/
 *.pyc
 docs/
+
+# never ship backup binaries inside the image
+*.bak*

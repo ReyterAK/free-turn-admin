@@ -3,7 +3,7 @@ bin/
 *.tar
 
 # backups
-*.bak
+*.bak*
 *.backup
 
 # editor/OS noise
