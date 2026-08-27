@@ -13,6 +13,10 @@ const WireGuardModule = {
     // (the panel cannot discover the API user's permission level).
     writeDenied: false,
 
+    // auto refresh (wg-poll / poll_seconds)
+    autoRefreshTimer: null,
+    refreshing: false,
+
 //
 // lifecycle
 //
@@ -22,6 +26,8 @@ async init() {
     this.bindEvents();
 
     await this.loadConfig();
+
+    this.startAutoRefresh();
 
     console.log(
         "[WireGuardModule] initialized"
@@ -1324,6 +1330,85 @@ fillForm(data) {
 
 },
 
+//
+// auto refresh (polling)
+//
+
+// startAutoRefresh (re)starts the periodic WireGuard view refresh
+// with the configured interval (wg-poll / poll_seconds; 0 = off).
+// The poll only fires while the tab is visible and no refresh is
+// already in flight.
+startAutoRefresh() {
+
+    if (this.autoRefreshTimer) {
+
+        clearInterval(this.autoRefreshTimer);
+
+        this.autoRefreshTimer = null;
+
+    }
+
+    const seconds =
+        parseInt(
+            this.inputValue("wg-poll"),
+            10
+        );
+
+    if (!seconds || seconds <= 0) {
+
+        return; // 0 = автообновление выключено
+
+    }
+
+    this.autoRefreshTimer =
+        setInterval(
+            () => {
+
+                if (
+                    this.refreshing ||
+                    !this.tabVisible()
+                ) {
+
+                    return;
+
+                }
+
+                this.refreshing = true;
+
+                this.refresh()
+                    .catch(
+                        err => console.error(
+                            "[WireGuardModule] auto refresh",
+                            err
+                        )
+                    )
+                    .finally(
+                        () => {
+
+                            this.refreshing = false;
+
+                        }
+                    );
+
+            },
+            seconds * 1000
+        );
+
+},
+
+// tabVisible reports whether the WireGuard tab is currently shown
+// (the poll must not hammer the router from behind other tabs).
+tabVisible() {
+
+    const tab =
+        document.getElementById(
+            "tab-wireguard"
+        );
+
+    return !tab || !tab.classList.contains("hidden");
+
+},
+
 async refresh() {
 
     this.showMsg(
@@ -1447,6 +1532,9 @@ async saveConfig() {
         if (data.status === "ok") {
 
             await this.refresh();
+
+            // Интервал мог поменяться — перезапускаем таймер.
+            this.startAutoRefresh();
 
             this.showMsg(
                 safeT("wg.saved"),
