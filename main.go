@@ -23,7 +23,7 @@ import (
 )
 
 // VERSION of the admin panel.
-const VERSION = "1.1.1"
+const VERSION = "1.1.2"
 
 //go:embed ui
 var uiFS embed.FS
