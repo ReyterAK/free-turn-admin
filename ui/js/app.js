@@ -110,6 +110,12 @@ const App = {
 
         }
 
+        if (window.PanelUpdateModule) {
+
+            await PanelUpdateModule.init();
+
+        }
+
         if (window.AdminModule) {
 
             await AdminModule.init();

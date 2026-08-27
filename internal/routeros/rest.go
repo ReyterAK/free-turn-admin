@@ -392,6 +392,29 @@ func (c *Client) ListServicePorts() ([]int, error) {
 	return ports, nil
 }
 
+// ContainerInfo is one RouterOS container (/container).
+type ContainerInfo struct {
+	ID          string `json:".id"`
+	Name        string `json:"name"`
+	RemoteImage string `json:"remote-image"`
+}
+
+// ListContainers returns all RouterOS containers in print order.
+func (c *Client) ListContainers() ([]ContainerInfo, error) {
+	var out []ContainerInfo
+	if err := c.get("/container", &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// UpdateContainer runs /container/update — RouterOS re-pulls the
+// container's remote-image and swaps the layers (the container
+// restarts). The container is addressed by its .id.
+func (c *Client) UpdateContainer(id string) error {
+	return c.post("/container/update", map[string]any{"number": id})
+}
+
 // AddPeer creates a WireGuard peer (public key + allowed address).
 func (c *Client) AddPeer(iface, publicKey, allowedAddress, comment string) error {
 	payload := map[string]any{

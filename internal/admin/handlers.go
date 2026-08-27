@@ -152,6 +152,12 @@ func (r *Router) api(w http.ResponseWriter, req *http.Request) {
 		r.requireAuth(r.systemVersion)(w, req)
 	case method == "GET" && path == "/api/system/admin-version":
 		r.requireAuth(r.adminVersion)(w, req)
+
+	// panel self-update
+	case method == "GET" && path == "/api/panel/update/check":
+		r.requireAuth(r.panelUpdateCheck)(w, req)
+	case method == "POST" && path == "/api/panel/update/apply":
+		r.requireAuth(r.panelUpdateApply)(w, req)
 	case method == "GET" && path == "/api/system/clients/count":
 		r.requireAuth(r.clientsCount)(w, req)
 	case method == "GET" && path == "/api/events":
