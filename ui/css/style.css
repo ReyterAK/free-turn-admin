@@ -73,7 +73,7 @@ RIGHT PANEL
 ===================================================== */
 
 .right-panel {
-width: 280px;
+width: 420px;
 
 
 background: #12151c;
@@ -3215,4 +3215,10 @@ h3,
 .routing-cmds { background: #2c3e50; color: #ecf0f1; padding: 8px 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; margin: 6px 0 0; white-space: pre-wrap; word-break: break-all; }
 
 /* Panel update */
-.panel-update-line { margin: 4px 0 8px; font-size: 13px; color: #555; min-height: 16px; }
+.panel-update-line {
+    grid-column: 1 / -1;
+    margin: 4px 0 8px;
+    font-size: 13px;
+    color: #555;
+    min-height: 16px;
+}
