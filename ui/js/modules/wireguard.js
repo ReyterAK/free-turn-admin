@@ -1269,9 +1269,18 @@ async loadConfig() {
 
             // Честное «не настроено»: форма пустая (браузер может
             // восстановить значения после reload), кнопка удаления
-            // скрыта.
+            // скрыта. URL — с дефолтным значением, чтобы не вводить
+            // руками (стандартный LAN-IP RouterOS).
+            const urlEl =
+                document.getElementById(
+                    "wg-url"
+                );
+
+            if (urlEl)
+                urlEl.value =
+                    "http://192.168.88.1/rest";
+
             for (const id of [
-                "wg-url",
                 "wg-user",
                 "wg-pass",
                 "wg-dns"
