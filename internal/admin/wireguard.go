@@ -24,6 +24,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -72,6 +73,12 @@ func SaveRouterOSConfig(cfg RouterOSConfig) error {
 		cfg.PollSeconds = 15
 	}
 	return writeJSONFile(RouterOSFile, cfg)
+}
+
+// DeleteRouterOSConfig removes the saved RouterOS connection — the
+// panel returns to the "not configured" state (no router access).
+func DeleteRouterOSConfig() error {
+	return os.Remove(RouterOSFile)
 }
 
 // backendHostPort returns the -connect host:port from the server
@@ -1494,6 +1501,20 @@ func (r *Router) wireguardSaveConfig(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	LogEvent("wireguard", "CONFIG_SAVED", "RouterOS connection settings updated")
+	writeJSON(w, map[string]any{"status": "ok"})
+}
+
+// wireguardDeleteConfig removes the saved RouterOS connection —
+// the panel returns to the "not configured" state.
+func (r *Router) wireguardDeleteConfig(w http.ResponseWriter, req *http.Request) {
+	if err := DeleteRouterOSConfig(); err != nil && !os.IsNotExist(err) {
+		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+	LogEvent("wireguard", "CONNECTION_REMOVED", "RouterOS connection removed")
 	writeJSON(w, map[string]any{"status": "ok"})
 }
 

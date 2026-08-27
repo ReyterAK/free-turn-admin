@@ -75,6 +75,25 @@ bindEvents() {
     }
 
 
+    const deleteConnBtn =
+        document.getElementById(
+            "wg-delete-conn"
+        );
+
+    if (deleteConnBtn) {
+
+        deleteConnBtn.addEventListener(
+            "click",
+            () => {
+
+                this.deleteConnection();
+
+            }
+        );
+
+    }
+
+
     const createToggle =
         document.getElementById(
             "wg-create-iface"
@@ -1246,6 +1265,43 @@ async loadConfig() {
             this.fillForm(data);
 
         }
+        else {
+
+            // Честное «не настроено»: форма пустая (браузер может
+            // восстановить значения после reload), кнопка удаления
+            // скрыта.
+            for (const id of [
+                "wg-url",
+                "wg-user",
+                "wg-pass",
+                "wg-dns"
+            ]) {
+
+                const el =
+                    document.getElementById(id);
+
+                if (el)
+                    el.value = "";
+
+            }
+
+            const poll =
+                document.getElementById(
+                    "wg-poll"
+                );
+
+            if (poll)
+                poll.value = "15";
+
+            const del =
+                document.getElementById(
+                    "wg-delete-conn"
+                );
+
+            if (del)
+                del.style.display = "none";
+
+        }
 
         this.render(data);
 
@@ -1327,6 +1383,81 @@ fillForm(data) {
         pass.value = data.pass_set
             ? "••••••••"
             : "";
+
+    // «Удалить подключение» — только когда подключение сохранено.
+    const deleteConn =
+        document.getElementById(
+            "wg-delete-conn"
+        );
+
+    if (deleteConn)
+        deleteConn.style.display =
+            data.url ? "" : "none";
+
+},
+
+//
+// connection removal
+//
+
+async deleteConnection() {
+
+    if (!window.Dialog)
+        return;
+
+    const ok =
+        await Dialog.confirm(
+            safeT("wg.delete_conn_title"),
+            safeT("wg.delete_conn_confirm")
+        );
+
+    if (!ok)
+        return;
+
+    try {
+
+        const resp =
+            await fetch(
+                "/api/wireguard/config/delete",
+                {
+                    method: "POST",
+                    credentials: "same-origin"
+                }
+            );
+
+        const data =
+            await resp.json();
+
+        if (data.status !== "ok") {
+
+            this.showMsg(
+                data.error ||
+                safeT("wg.save_error"),
+                "error"
+            );
+
+            return;
+
+        }
+
+        // Перезагрузка: все модули заново покажут честное
+        // состояние «Подключение к RouterOS не настроено».
+        location.reload();
+
+    }
+    catch (error) {
+
+        console.error(
+            "[WireGuardModule] delete connection",
+            error
+        );
+
+        this.showMsg(
+            String(error),
+            "error"
+        );
+
+    }
 
 },
 

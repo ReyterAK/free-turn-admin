@@ -194,6 +194,8 @@ func (r *Router) api(w http.ResponseWriter, req *http.Request) {
 		r.requireAuth(r.wireguardStatus)(w, req)
 	case method == "POST" && path == "/api/wireguard/config":
 		r.requireAuth(r.wireguardSaveConfig)(w, req)
+	case method == "POST" && path == "/api/wireguard/config/delete":
+		r.requireAuth(r.wireguardDeleteConfig)(w, req)
 	case method == "POST" && path == "/api/wireguard/interface":
 		r.requireAuth(r.wireguardCreateInterface)(w, req)
 	case method == "POST" && path == "/api/wireguard/interface/delete":
