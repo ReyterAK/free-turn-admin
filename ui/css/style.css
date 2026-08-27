@@ -349,6 +349,8 @@ color: #cfd6e6;
 
 border-bottom: 1px solid #252b38;
 
+text-align: center;
+
 
 }
 
@@ -578,14 +580,20 @@ font-size: 13px;
 padding: 10px;
 }
 
+#system-card .schema-section h3 {
+margin: 0 0 8px 0;
+font-size: 14px;
+text-align: center;
+}
+
 #system-card .schema-field {
 margin-bottom: 6px;
 font-size: 13px;
 }
 
-#system-card .schema-section h3 {
-margin: 0 0 8px 0;
-font-size: 14px;
+#system-card .schema-label-wrap label,
+#system-card .schema-field-title {
+white-space: nowrap;
 }
 
 .schema-section {
