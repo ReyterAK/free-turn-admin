@@ -36,10 +36,7 @@ const AdminSettingsStore = {
             );
 
 
-        console.log(
-            "[AdminSettingsStore] response",
-            response
-        );
+        
 
 
         this.readError =
@@ -52,10 +49,7 @@ const AdminSettingsStore = {
             response?.data || {};
 
 
-        console.log(
-            "[AdminSettingsStore] settings",
-            this.settings
-        );
+        
 
 
         return this.settings;

@@ -12,9 +12,7 @@ const AdminModule = {
 
         this.render();
 
-        console.log(
-            "[AdminModule] initialized"
-        );
+        
 
     },
 
