@@ -322,7 +322,7 @@
 "wg.url_help_title": "RouterOS REST URL",
 "wg.url_help_text": "Router REST API address: http://<router-IP>/rest (enabled by default on RouterOS 7.1+).\nFor a container on the router itself: http://127.0.0.1/rest (host network) or http://192.168.88.1/rest (default RouterOS LAN IP).",
 "wg.user_help_title": "RouterOS user",
-"wg.user_help_text": "Panel account is created in Winbox:\n1) System → Users → Groups → '+': name (e.g. wg-view), Policies: rest-api + api + read.\n2) System → Users → '+': user=..., group=wg-view, password=...\nRead access needs rest-api + api + read; management adds write.\nNote: REST requires TWO policies: rest-api — access to the REST service, api — access to the menus (verified on RouterOS 7.24.1: without rest-api — 401, without api — \"not allowed (9)\").",
+"wg.user_help_text": "Create API users in Terminal WinBox (replace \"PassW0rd\" with your password):\n\n/user group add name=api-group-ro policy=read,api,rest-api\n/user group add name=api-group-rw policy=read,write,api,rest-api\n/user add name=free-turn-admin-ro group=api-group-ro password=\"PassW0rd\"\n/user add name=free-turn-admin-rw group=api-group-rw password=\"PassW0rd\"\n\nfree-turn-admin-ro — read-only, free-turn-admin-rw — full access.",
 "wg.backend_label": "Backend server:",
 "wg.backend_missing": "Backend server is not configured. In 'Server settings' specify the IP address and port of the WireGuard interface.",
 "wg.backend_go_settings": "Go to server settings",

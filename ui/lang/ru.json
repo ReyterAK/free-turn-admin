@@ -322,7 +322,7 @@
 "wg.url_help_title": "URL RouterOS REST",
 "wg.url_help_text": "Адрес REST API роутера: http://<IP-роутера>/rest (включён по умолчанию на RouterOS 7.1+).\nДля контейнера на самом роутере: http://127.0.0.1/rest (host-сеть) или http://192.168.88.1/rest (стандартный LAN-IP RouterOS).",
 "wg.user_help_title": "Пользователь RouterOS",
-"wg.user_help_text": "Учётная запись для панели создаётся в Winbox:\n1) System → Users → Groups → «+»: имя (напр. wg-view), Policies: rest-api + api + read.\n2) System → Users → «+»: user=..., group=wg-view, password=...\nДля чтения достаточно rest-api + api + read; для управления добавить write.\nВажно: REST требует ДВЕ политики: rest-api — для доступа к REST, api — для доступа к меню (проверено на RouterOS 7.24.1: без rest-api — 401, без api — «not allowed (9)»).",
+"wg.user_help_text": "Создание пользователей API в Terminal WinBox (замените \"PassW0rd\" на пароль пользователя):\n\n/user group add name=api-group-ro policy=read,api,rest-api\n/user group add name=api-group-rw policy=read,write,api,rest-api\n/user add name=free-turn-admin-ro group=api-group-ro password=\"PassW0rd\"\n/user add name=free-turn-admin-rw group=api-group-rw password=\"PassW0rd\"\n\nПользователь free-turn-admin-ro — только чтение, free-turn-admin-rw — полный доступ.",
 "wg.backend_label": "Backend-сервер:",
 "wg.backend_missing": "Отсутствуют настройки Backend-сервер. В «Настройки сервера» укажите IP-адрес и порт WireGuard-интерфейса.",
 "wg.backend_go_settings": "Перейти к настройкам сервера",
