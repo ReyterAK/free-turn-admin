@@ -55,9 +55,7 @@ await this.refresh();
 
 this.bindEvents();
 
-console.log(
-    "[ClientsModule] initialized"
-);
+
 
 
 },
@@ -624,10 +622,7 @@ async remove(id) {
 async export(id) {
 
 
-console.log(
-    "[ClientsModule] Export connection",
-    id
-);
+
 
 
 const client =
@@ -755,9 +750,7 @@ try {
             wg === null
         ) {
 
-            console.log(
-                "[ClientsModule] URI export cancelled"
-            );
+            
 
 
             return;
@@ -783,10 +776,7 @@ try {
         );
 
 
-    console.log(
-        "[ClientsModule] URI generated",
-        uri
-    );
+    
 
 
     UriExportModal.show(

@@ -188,9 +188,7 @@ init() {
     );
 
 
-    console.log(
-        "[UriExportModal] initialized"
-    );
+    
 
 },
 
@@ -405,9 +403,7 @@ async copy() {
         );
 
 
-        console.log(
-            "[UriExportModal] URI copied"
-        );
+        
 
 
     }
@@ -450,9 +446,7 @@ async copy() {
             );
 
 
-            console.log(
-                "[UriExportModal] URI copied using fallback"
-            );
+            
 
         }
         catch (fallbackError) {

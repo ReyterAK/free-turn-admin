@@ -252,9 +252,7 @@ init() {
     );
 
 
-    console.log(
-        "[UriClientConfigModal] initialized"
-    );
+    
 
 },
 

@@ -21,9 +21,7 @@ async init() {
     this.bindEvents();
 
 
-    console.log(
-        "[ServerModule] initialized"
-    );
+    
 
 },
 
@@ -45,9 +43,7 @@ bindEvents() {
             async () => {
 
 
-                console.log(
-                    "[ServerModule] restart button clicked"
-                );
+                
 
 
                 await this.restart();
@@ -68,9 +64,7 @@ bindEvents() {
         updateButton.onclick =
             async () => {
     
-                console.log(
-                    "[ServerModule] update server button clicked"
-                );
+                
     
     
                 await this.checkForServerUpdate();
@@ -213,10 +207,7 @@ async saveSettings() {
             await ServerSettingsStore.save();
 
 
-        console.log(
-            "[ServerModule] settings saved",
-            result
-        );
+        
 
 
     } catch (error) {
@@ -259,10 +250,7 @@ async checkForServerUpdate() {
             result?.version;
 
 
-        console.log(
-            "[ServerModule] current server version:",
-            currentVersion
-        );
+        
 
 
         if (!currentVersion) {
@@ -295,10 +283,7 @@ async checkForServerUpdate() {
                 ServerStore.get("status")?.status;
 
 
-            console.log(
-                "[ServerModule] server status after version error:",
-                currentStatus
-            );
+            
 
 
             if (
@@ -354,10 +339,7 @@ async checkForServerUpdate() {
                 await ServerEntityLayer.getLatestServerRelease();
     
     
-            console.log(
-                "[ServerModule] latest GitHub release:",
-                latestRelease
-            );
+            
     
     
             if (retryInProgress) {
@@ -450,9 +432,7 @@ async checkForServerUpdate() {
     
         if (!retry) {
     
-            console.log(
-                "[ServerModule] GitHub release check cancelled by user"
-            );
+            
     
     
             return;
@@ -460,9 +440,7 @@ async checkForServerUpdate() {
         }
     
     
-        console.log(
-            "[ServerModule] retrying GitHub release request"
-        );
+        
     
     
         retryInProgress =
@@ -506,10 +484,7 @@ async checkForServerUpdate() {
     // New version found.
     //
 
-    console.log(
-        "[ServerModule] new server version found:",
-        latestRelease.version
-    );
+    
 
 
     const publishedAt =
@@ -558,9 +533,7 @@ async checkForServerUpdate() {
     if (!updateConfirmed) {
 
 
-        console.log(
-            "[ServerModule] server update cancelled by user"
-        );
+        
 
 
         return;
@@ -569,9 +542,7 @@ async checkForServerUpdate() {
     }
 
 
-    console.log(
-        "[ServerModule] server update confirmed by user"
-    );
+    
 
 
     //
@@ -597,10 +568,7 @@ async checkForServerUpdate() {
             );
 
 
-        console.log(
-            "[ServerModule] server update downloaded:",
-            downloadResult
-        );
+        
 
 
     }
@@ -634,9 +602,7 @@ async checkForServerUpdate() {
 // the SHA-256 digest.
 //
 
-console.log(
-    "[ServerModule] replacing server binary"
-);
+
 
 
 let replaceResult;
@@ -648,10 +614,7 @@ try {
         await ServerEntityLayer.replaceServerBinary();
 
 
-    console.log(
-        "[ServerModule] server binary replaced:",
-        replaceResult
-    );
+    
 
 
 }

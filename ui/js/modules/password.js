@@ -8,9 +8,7 @@ const PasswordModule = {
 
 async init() {
 
-    console.log(
-        "[PasswordModule] initialized"
-    );
+    
 
 },
 

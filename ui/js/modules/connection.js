@@ -15,9 +15,7 @@ const ConnectionModule = {
 
         this.bindEvents();
 
-        console.log(
-            "[ConnectionModule] initialized"
-        );
+        
 
     },
 

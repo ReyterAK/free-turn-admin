@@ -31,6 +31,8 @@ const Store = {
 
         clientsCount: 0,
 
+        adminVersion: null,
+
         runArgs: null,
 		
 		serverSettings: null,

@@ -25,9 +25,7 @@ const UriGenerationSettingsModule = {
     async init() {
 
 
-        console.log(
-            "[UriGenerationSettingsModule] initializing..."
-        );
+        
 
 
         //
@@ -44,9 +42,7 @@ const UriGenerationSettingsModule = {
         UriGenerationSettingsStore.render();
 
 
-        console.log(
-            "[UriGenerationSettingsModule] initialized."
-        );
+        
 
 
         return true;
@@ -65,9 +61,7 @@ const UriGenerationSettingsModule = {
         await UriGenerationSettingsStore.save();
 
 
-        console.log(
-            "[UriGenerationSettingsModule] settings saved."
-        );
+        
 
 
         return true;

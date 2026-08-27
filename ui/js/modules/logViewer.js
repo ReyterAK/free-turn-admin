@@ -7,9 +7,7 @@ const LogViewerModule = {
 
     async open() {
 
-        console.log(
-            "[LogViewer] open"
-        );
+        
 
         let lines = [];
 

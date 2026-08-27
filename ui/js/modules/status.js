@@ -42,9 +42,7 @@ async init() {
 
     await this.startAutoRefresh();
 
-    console.log(
-        "[StatusModule] initialized"
-    );
+    
 
 },
 
@@ -104,9 +102,7 @@ async startAutoRefresh() {
         !interval
     ) {
 
-        console.log(
-            "[StatusModule] auto refresh disabled"
-        );
+        
 
         return;
 
@@ -124,9 +120,7 @@ async startAutoRefresh() {
 
             async () => {
 
-                console.log(
-                    "[StatusModule] automatic status refresh"
-                );
+                
 
 
                 await this.refresh();
@@ -140,11 +134,7 @@ async startAutoRefresh() {
         );
 
 
-    console.log(
-        "[StatusModule] auto refresh started:",
-        interval,
-        "minute(s)"
-    );
+    
 
 },
 
@@ -164,9 +154,7 @@ stopAutoRefresh() {
             null;
 
 
-        console.log(
-            "[StatusModule] auto refresh stopped"
-        );
+        
 
     }
 
@@ -316,16 +304,10 @@ render() {
         {};
 
 
-    console.log(
-        "[STATUS FULL]",
-        status
-    );
+    
 
 
-    console.log(
-        "[STATUS BACKEND]",
-        status.backend
-    );
+    
 
 
     const data = {

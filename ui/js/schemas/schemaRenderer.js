@@ -344,17 +344,7 @@ function renderField(
 
     }
 
-    console.log(
-
-        "[SCHEMA FIELD]",
-
-        field.key,
-
-        rawValue,
-
-        typeof rawValue
-
-    );
+    
 
     const wrapper =
         document.createElement(
@@ -1491,17 +1481,7 @@ function renderReadonlyField(
     rawValue
 ) {
 
-    console.log(
-
-        "[READONLY]",
-
-        field.key,
-
-        rawValue,
-
-        typeof rawValue
-
-    );
+    
 
     const div =
         document.createElement(
@@ -1776,24 +1756,12 @@ function renderEditableField(
                 "function"
         ) {
 
-            console.log(
-
-                "[BUTTON BIND]",
-
-                field.action
-
-            );
+            
 
             button.onclick =
                 async function() {
 
-                    console.log(
-
-                        "[BUTTON CLICK]",
-
-                        field.action
-
-                    );
+                    
 
                     try {
 
@@ -1801,13 +1769,7 @@ function renderEditableField(
                             field.action
                         ]();
 
-                        console.log(
-
-                            "[BUTTON DONE]",
-
-                            field.action
-
-                        );
+                        
 
                     } catch (
                         error

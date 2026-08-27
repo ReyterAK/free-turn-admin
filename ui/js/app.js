@@ -15,9 +15,7 @@ const App = {
     async init() {
 
 
-        console.log(
-            "FreeTurn Admin initializing..."
-        );
+        
 
 
         //
@@ -133,9 +131,7 @@ const App = {
         );
 
 
-        console.log(
-            "FreeTurn Admin initialized."
-        );
+        
 
 
     },

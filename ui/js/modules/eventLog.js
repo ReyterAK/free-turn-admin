@@ -8,9 +8,7 @@ const EventLogModule = {
 
     async open() {
 
-        console.log(
-            "[EventLog] open"
-        );
+        
 
 
         let events = [];

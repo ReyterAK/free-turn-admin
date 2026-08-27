@@ -11,9 +11,7 @@ const SchemaEntityLayer = {
 
     async init() {
 
-        console.log(
-            "[SchemaEntityLayer] initialized"
-        );
+        
 
         return true;
 

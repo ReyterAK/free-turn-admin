@@ -29,9 +29,7 @@ async init() {
 
     this.startAutoRefresh();
 
-    console.log(
-        "[WireGuardModule] initialized"
-    );
+    
 
 },
 

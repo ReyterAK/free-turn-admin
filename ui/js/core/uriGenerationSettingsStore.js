@@ -174,10 +174,7 @@ async load() {
         this.validation.errors || [];
 
 
-    console.log(
-        "[UriGenerationSettingsStore] loaded settings",
-        this.settings
-    );
+    
 
 
     return this.settings;
@@ -1116,10 +1113,7 @@ async save() {
 
 
 
-    console.log(
-        "[UriGenerationSettingsStore] settings saved",
-        this.settings
-    );
+    
 
 
 
