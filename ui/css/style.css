@@ -85,6 +85,10 @@ display: flex;
 flex-direction: column;
 gap: 14px;
 
+/* min-height: 0 разрешает flex-элементу сжаться ниже контента —
+   иначе overflow-y не включается и низ панели обрезается .layout */
+min-height: 0;
+
 overflow-y: auto;
 
 
@@ -323,10 +327,17 @@ RIGHT PANEL SECTIONS
 
 .panel-section {
 margin-bottom: 0;
+
+/* Кнопки в 2 колонки — панель сильно ужалась по высоте */
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 8px;
 }
 
 .panel-section h3 {
-margin: 0 0 12px 0;
+grid-column: 1 / -1;
+
+margin: 0 0 4px 0;
 
 
 padding-bottom: 8px;
@@ -343,11 +354,16 @@ border-bottom: 1px solid #252b38;
 
 .panel-section button {
 width: 100%;
-margin-bottom: 8px;
+margin: 0;
 }
 
 .panel-section button:last-child {
 margin-bottom: 0;
+}
+
+/* статус-карточка занимает обе колонки грида */
+#system-card {
+grid-column: 1 / -1;
 }
 
 /* =====================================================
@@ -551,11 +567,25 @@ display: flex;
 flex-direction: column;
 
 
-gap: 14px;
+gap: 10px;
 
+font-size: 13px;
+
+
+}
+
+#system-card .schema-section {
+padding: 10px;
+}
+
+#system-card .schema-field {
+margin-bottom: 6px;
+font-size: 13px;
+}
+
+#system-card .schema-section h3 {
+margin: 0 0 8px 0;
 font-size: 14px;
-
-
 }
 
 .schema-section {
@@ -3183,3 +3213,6 @@ h3,
 .routing-title { font-weight: bold; }
 .routing-detail { margin-top: 2px; font-size: 13px; color: #444; }
 .routing-cmds { background: #2c3e50; color: #ecf0f1; padding: 8px 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; margin: 6px 0 0; white-space: pre-wrap; word-break: break-all; }
+
+/* Panel update */
+.panel-update-line { margin: 4px 0 8px; font-size: 13px; color: #555; min-height: 16px; }
