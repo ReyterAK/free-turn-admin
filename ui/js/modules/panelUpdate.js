@@ -206,15 +206,23 @@ async apply() {
                 (data.command || "")
             );
 
+            // Восстановить строку статуса (была переведена в
+            // «Обновление запускается…»).
+            await this.check(false);
+
             return;
 
         }
 
         await Dialog.alert(
             safeT("panel.update_title"),
-            data.error ||
-            safeT("panel.check_error")
+            typeof data.error === "string"
+                ? data.error
+                : (data.error && data.error.detail) ||
+                  safeT("panel.check_error")
         );
+
+        await this.check(false);
 
     }
     catch (error) {
