@@ -333,8 +333,8 @@ func (r *Router) changePassword(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	currentUser, currentPassword := currentCredentials()
-	if currentUser == "" || currentPassword == "" {
+	currentUser, _ := currentCredentials()
+	if currentUser == "" {
 		writeJSONStatus(w, http.StatusInternalServerError, map[string]any{
 			"status": "fail",
 			"error":  "invalid_auth",
@@ -342,7 +342,7 @@ func (r *Router) changePassword(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if oldPassword != currentPassword {
+	if !Authenticate(currentUser, oldPassword) {
 		writeJSONStatus(w, http.StatusUnauthorized, map[string]any{
 			"status": "fail",
 			"error":  "wrong_password",

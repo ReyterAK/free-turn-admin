@@ -14,8 +14,9 @@ func newAuthTest(t *testing.T) {
 	t.Helper()
 	ConfigDir = t.TempDir()
 	// Path vars are bound at package init from CONFIG_DIR; the tests
-	// re-point the key file explicitly.
+	// re-point the key file (and auth file) explicitly.
 	SessionKeyFile = filepath.Join(ConfigDir, "session.key")
+	AuthFile = filepath.Join(ConfigDir, "auth.json")
 }
 
 func TestSessionCookieValid(t *testing.T) {
@@ -67,5 +68,47 @@ func TestSessionCookieFreshness(t *testing.T) {
 	c := "2." + strconv.FormatInt(twelveHours, 10) + "." + signSession(strconv.FormatInt(twelveHours, 10))
 	if !validSession(c) {
 		t.Fatal("cookie within SessionLifetime must be valid")
+	}
+}
+
+func TestSaveAuthHashesPassword(t *testing.T) {
+	newAuthTest(t)
+	if err := SaveAuth("admin", "secret1"); err != nil {
+		t.Fatalf("SaveAuth: %v", err)
+	}
+	_, stored := currentCredentials()
+	if !isBcryptHash(stored) {
+		t.Fatalf("stored password must be a bcrypt hash, got %q", stored)
+	}
+	if !Authenticate("admin", "secret1") {
+		t.Fatal("correct password must authenticate against the hash")
+	}
+	if Authenticate("admin", "wrong") {
+		t.Fatal("wrong password must be rejected")
+	}
+}
+
+func TestAuthenticateMigratesPlaintext(t *testing.T) {
+	newAuthTest(t)
+	// legacy plaintext auth.json (as written by pre-bcrypt builds)
+	if err := writeJSONFile(AuthFile, map[string]any{
+		"user":     "admin",
+		"password": "legacy-pass",
+	}); err != nil {
+		t.Fatalf("write legacy auth: %v", err)
+	}
+	if !Authenticate("admin", "legacy-pass") {
+		t.Fatal("plaintext password must authenticate")
+	}
+	_, stored := currentCredentials()
+	if !isBcryptHash(stored) {
+		t.Fatalf("login must migrate plaintext to bcrypt, got %q", stored)
+	}
+	// второй вход — уже по хешу
+	if !Authenticate("admin", "legacy-pass") {
+		t.Fatal("authenticate against migrated hash failed")
+	}
+	if Authenticate("admin", "wrong") {
+		t.Fatal("wrong password must be rejected after migration")
 	}
 }

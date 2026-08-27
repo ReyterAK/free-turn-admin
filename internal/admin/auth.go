@@ -22,6 +22,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 const SessionCookie = "ft_admin_auth"
@@ -48,9 +50,13 @@ func HasAdminAccount() bool {
 }
 
 func SaveAuth(user, password string) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
 	return writeJSONFile(AuthFile, map[string]any{
 		"user":     user,
-		"password": password,
+		"password": string(hash),
 	})
 }
 
@@ -59,6 +65,14 @@ func currentCredentials() (string, string) {
 	user, _ := auth["user"].(string)
 	password, _ := auth["password"].(string)
 	return user, password
+}
+
+// isBcryptHash reports whether the stored password is a bcrypt hash
+// (as opposed to the legacy plaintext).
+func isBcryptHash(s string) bool {
+	return strings.HasPrefix(s, "$2a$") ||
+		strings.HasPrefix(s, "$2b$") ||
+		strings.HasPrefix(s, "$2y$")
 }
 
 // ---------------------------------------------------------------------
@@ -122,9 +136,20 @@ func validSession(cookie string) bool {
 
 func Authenticate(user, password string) bool {
 	storedUser, storedPassword := currentCredentials()
-	return storedUser != "" &&
-		user == storedUser &&
-		password == storedPassword
+	if storedUser == "" || storedPassword == "" || user != storedUser {
+		return false
+	}
+	if isBcryptHash(storedPassword) {
+		return bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(password)) == nil
+	}
+	// Прозрачная миграция: старый plaintext сверяется и при первом
+	// успешном входе пересохраняется хешем (учётка не теряется при
+	// обновлении контейнера).
+	if password != storedPassword {
+		return false
+	}
+	_ = SaveAuth(storedUser, password) // best-effort: вход уже успешен
+	return true
 }
 
 func CreateAccount(user, password string) error {
