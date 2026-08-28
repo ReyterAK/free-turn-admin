@@ -98,6 +98,7 @@
 "panel.update_confirm": "The container will be restarted with the new image. The panel restarts and the session drops. Continue?",
 "panel.updating": "Starting update…",
 "panel.update_started": "Update started. The panel will restart — reopen it in a minute.",
+"panel.update_permission": "The RouterOS API user has no permission to update the container (write required). Temporarily enable free-turn-admin-rw or run in Terminal WinBox:",
 "panel.update_manual": "Automatic update is not possible (no RouterOS access or no remote-image). Run in WinBox Terminal:",
 "eventlog.title": "Event log",
 "serverlog.title": "Server log",

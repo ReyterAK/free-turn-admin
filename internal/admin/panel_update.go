@@ -195,9 +195,21 @@ func (r *Router) panelUpdateApply(w http.ResponseWriter, req *http.Request) {
 				return
 			}
 			if err := client.UpdateContainer(c.ID); err != nil {
+				classified := classifyRouterOSError(err)
+				if classified["kind"] == "permission" {
+					// Пользователь API без write: /container/update
+					// возвращает "not enough permissions".
+					// Показываем команду для Terminal WinBox.
+					writeJSONStatus(w, http.StatusBadRequest, map[string]any{
+						"status":  "error",
+						"error":   "no_permission",
+						"command": "/container update " + panelContainerName,
+					})
+					return
+				}
 				writeJSONStatus(w, http.StatusBadGateway, map[string]any{
 					"status": "error",
-					"error":  classifyRouterOSError(err),
+					"error":  classified,
 				})
 				return
 			}

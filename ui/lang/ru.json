@@ -98,6 +98,7 @@
 "panel.update_confirm": "Контейнер будет перезапущен с новой версией образа. Панель перезапустится, сессия прервётся. Продолжить?",
 "panel.updating": "Обновление запускается…",
 "panel.update_started": "Обновление запущено. Панель перезапустится — через минуту откройте её заново.",
+"panel.update_permission": "Пользователь API RouterOS не имеет прав на обновление контейнера (нужен write). Временно включите free-turn-admin-rw или выполните в Terminal WinBox:",
 "panel.update_manual": "Автоматическое обновление невозможно (нет доступа к RouterOS или не задан remote-image). Выполните в Terminal WinBox:",
 "eventlog.title": "Журнал событий",
 "serverlog.title": "Лог сервера",

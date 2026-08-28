@@ -196,12 +196,15 @@ async apply() {
         if (
             data.error === "no_routeros" ||
             data.error === "no_remote_image" ||
-            data.error === "container_not_found"
+            data.error === "container_not_found" ||
+            data.error === "no_permission"
         ) {
 
             await Dialog.alert(
                 safeT("panel.update_title"),
-                safeT("panel.update_manual") +
+                (data.error === "no_permission"
+                    ? safeT("panel.update_permission")
+                    : safeT("panel.update_manual")) +
                 "\n\n" +
                 (data.command || "")
             );
