@@ -1005,6 +1005,118 @@
 </div>
 
 <!-- =========================
+     CMD FLAGS MODAL
+========================== -->
+
+<div
+    id="cmd-flags-modal"
+    class="modal hidden">
+
+
+<div
+    class="modal-window cmd-flags-window">
+
+    <div class="modal-header">
+
+        <h3 id="cmd-flags-modal-title" data-i18n="cmd_flags.title">
+            Флаги для запуска клиента
+        </h3>
+
+
+        <button
+            type="button"
+            class="modal-close"
+            id="cmd-flags-close">
+
+            ×
+
+        </button>
+
+    </div>
+
+
+    <div class="modal-body">
+
+        <p
+            id="cmd-flags-modal-description"
+            class="cmd-flags-description"
+            data-i18n="cmd_flags.description">
+
+            Сгенерируйте команду запуска консольного клиента. Укажите ссылку на VK Calls (можно несколько через запятую) — без неё клиент не получит TURN-учётные данные.
+
+        </p>
+
+
+        <label for="cmd-flags-links" data-i18n="cmd_flags.links_label">
+            Ссылки VK Calls (через запятую)
+        </label>
+
+
+        <input
+            id="cmd-flags-links"
+            class="cmd-flags-links"
+            type="text"
+            placeholder="https://vk.ru/call/join/..."
+            autocomplete="off"
+            spellcheck="false">
+
+
+        <div
+            id="cmd-flags-warn"
+            class="cmd-flags-warn hidden">
+        </div>
+
+
+        <div
+            id="cmd-flags-error"
+            class="cmd-flags-error hidden">
+        </div>
+
+
+        <label for="cmd-flags-command" data-i18n="cmd_flags.command_label">
+            Команда запуска
+        </label>
+
+
+        <textarea
+            id="cmd-flags-command"
+            class="cmd-flags-command"
+            readonly
+            rows="7"
+            spellcheck="false"></textarea>
+
+    </div>
+
+
+    <div class="modal-footer">
+
+        <button
+            type="button"
+            id="cmd-flags-close-action"
+            data-i18n="actions.close">
+
+            Закрыть
+
+        </button>
+
+
+        <button
+            type="button"
+            id="cmd-flags-copy"
+            data-i18n="cmd_flags.copy">
+
+            Копировать команду
+
+        </button>
+
+    </div>
+
+</div>
+
+
+</div>
+
+<!-- =========================
      URI EXPORT MODAL
 ========================== -->
 
@@ -1180,6 +1292,17 @@
 
         <button
             type="button"
+            id="dialog-modal-copy"
+            class="hidden"
+            data-i18n="wg.copy">
+
+            Копировать
+
+        </button>
+
+
+        <button
+            type="button"
             id="dialog-modal-cancel"
             data-i18n="actions.cancel">
 
@@ -1318,7 +1441,7 @@
 
 <script src="/js/core/toast.js?v=20260824-1"></script>
 
-<script src="/js/core/dialog.js?v=20260824-1"></script>
+<script src="/js/core/dialog.js?v=20260828-2"></script>
 
 <script src="/js/core/adminEntityLayer.js?v=20260824-1"></script>
 
@@ -1330,11 +1453,15 @@
 
 <script src="/js/core/uriGenerationSettingsStore.js?v=20260824-1"></script>
 
-<script src="/js/core/uriExportDataCollector.js?v=20260824-1"></script>
+<script src="/js/core/uriExportDataCollector.js?v=20260828-1"></script>
 
 <script src="/js/core/uriExportPayloadBuilder.js?v=20260824-1"></script>
 
 <script src="/js/core/uriExportEncoder.js?v=20260824-1"></script>
+
+<script src="/js/core/clientCmdBuilder.js?v=20260828-1"></script>
+
+<script src="/js/core/clipboard.js?v=20260828-2"></script>
 
 <!-- =========================
      ENTITY LAYERS
@@ -1380,7 +1507,7 @@
      UI MODULES
 ========================== -->
 
-<script src="/js/modules/clients.js?v=20260824-1"></script>
+<script src="/js/modules/clients.js?v=20260828-1"></script>
 
 <script src="/js/modules/server.js?v=20260824-1"></script>
 
@@ -1415,15 +1542,17 @@
      MODALS
 ========================== -->
 
-<script src="/js/modules/uriExportModal.js?v=20260824-1"></script>
+<script src="/js/modules/uriExportModal.js?v=20260828-2"></script>
 
 <script src="/js/modules/uriClientConfigModal.js?v=20260824-1"></script>
+
+<script src="/js/modules/cmdFlagsModal.js?v=20260828-2"></script>
 
 <!-- =========================
      APPLICATION BOOTSTRAP
 ========================== -->
 
-<script src="/js/app.js?v=20260824-1"></script>
+<script src="/js/app.js?v=20260828-1"></script>
 
 </body>
 

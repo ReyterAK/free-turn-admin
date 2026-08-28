@@ -50,6 +50,11 @@ document.getElementById(
 "dialog-modal-save"
 );
 
+const copyButton =
+document.getElementById(
+"dialog-modal-copy"
+);
+
 const cancelButton =
 document.getElementById(
 "dialog-modal-cancel"
@@ -198,11 +203,19 @@ saveButton.classList.add(
     "hidden"
 );
 
+copyButton.classList.add(
+    "hidden"
+);
+
 if (
 options.showConfigActions
 ) {
 
 saveButton.classList.remove(
+    "hidden"
+);
+
+copyButton.classList.remove(
     "hidden"
 );
 
@@ -485,6 +498,14 @@ whatsNew.classList.add(
 
 whatsNew.value =
 "";
+
+copyButton.classList.add(
+    "hidden"
+);
+
+saveButton.classList.add(
+    "hidden"
+);
 
 message.classList.remove(
 "hidden"
@@ -1170,6 +1191,27 @@ saveButton.addEventListener(
 
         },
         0
+    );
+
+}
+);
+
+/*
+COPY handler for the config dialog.
+*/
+
+copyButton.addEventListener(
+"click",
+() => {
+
+    // Копируем ровно тот текст, что в окне — включая
+    // свежие правки администратора.
+    const text =
+        whatsNew.value ||
+        "";
+
+    ClipboardHelper.copy(
+        text
     );
 
 }

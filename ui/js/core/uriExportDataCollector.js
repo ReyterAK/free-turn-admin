@@ -295,6 +295,18 @@ const UriExportDataCollector = {
 
 
             //
+            // run.args / server settings
+            //
+            // Obfuscation packet timing.
+            // Mirrored into the client launch command
+            // (not carried by the URI payload).
+            //
+
+            obf_timing:
+                serverSettings.obf_timing,
+
+
+            //
             // uri.json
             //
 

@@ -268,6 +268,10 @@ onclick="ClientsModule.export('${client.id}')">
 ${safeT("actions.export")} </button>
 
 <button
+onclick="ClientsModule.cmd('${client.id}')">
+${safeT("actions.cmd")} </button>
+
+<button
 onclick="ClientsModule.edit('${client.id}')">
 ${safeT("actions.update")} </button>
 
@@ -796,6 +800,78 @@ try {
         safeT("clients.export_error_title"),
         error?.message ||
         safeT("clients.export_error_message")
+    );
+
+}
+
+
+},
+
+//
+// Generate the console-client launch command
+// ("client -flags ...") for the selected client.
+//
+// Same data source as URI export (UriExportDataCollector),
+// but without the WireGuard configuration step:
+// the command carries client parameters only.
+//
+
+async cmd(id) {
+
+
+
+const client =
+    ClientStore
+        .get()
+        .find(
+            c => c.id === id
+        );
+
+
+if (!client) {
+
+    console.error(
+        "[ClientsModule] client not found",
+        id
+    );
+
+
+    Dialog.alert(
+        safeT("dialog.title_error"),
+        safeT("clients.not_found")
+    );
+
+
+    return;
+
+}
+
+
+try {
+
+    const exportData =
+        await UriExportDataCollector.collect(
+            client
+        );
+
+
+    CmdFlagsModal.show(
+        exportData
+    );
+
+
+} catch (error) {
+
+    console.error(
+        "[ClientsModule] command generation failed",
+        error
+    );
+
+
+    Dialog.alert(
+        safeT("cmd_flags.error_title"),
+        error?.message ||
+        safeT("cmd_flags.error_message")
     );
 
 }

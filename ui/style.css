@@ -2938,6 +2938,502 @@ h3,
 
 
 /* =====================================================
+   CMD FLAGS WINDOW
+===================================================== */
+
+.cmd-flags-window {
+
+    width:
+        1050px;
+
+    max-width:
+        calc(
+            100vw - 40px
+        );
+
+    max-height:
+        99vh;
+
+}
+
+
+/* =====================================================
+   CMD FLAGS OVERLAY
+===================================================== */
+
+#cmd-flags-modal {
+
+    background:
+        rgba(
+            0,
+            0,
+            0,
+            .92
+        );
+
+}
+
+
+/* =====================================================
+   CMD FLAGS HEADER
+===================================================== */
+
+.cmd-flags-window
+.modal-header {
+
+    position:
+        relative;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    padding:
+        8px 52px;
+
+    min-height:
+        44px;
+
+}
+
+
+.cmd-flags-window
+.modal-header
+h2,
+.cmd-flags-window
+.modal-header
+h3,
+.cmd-flags-window
+#cmd-flags-modal-title {
+
+    width:
+        100%;
+
+    margin:
+        0;
+
+    text-align:
+        center;
+
+}
+
+
+/* =====================================================
+   CLOSE BUTTON
+===================================================== */
+
+.cmd-flags-window
+.modal-header
+.modal-close {
+
+    position:
+        absolute;
+
+    top:
+        50%;
+
+    right:
+        14px;
+
+    width:
+        32px;
+
+    height:
+        32px;
+
+    padding:
+        0;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    transform:
+        translateY(-50%);
+
+    background:
+        transparent;
+
+    border:
+        none;
+
+    border-radius:
+        6px;
+
+    color:
+        #7f8aa3;
+
+    font-size:
+        22px;
+
+    line-height:
+        1;
+
+    cursor:
+        pointer;
+
+}
+
+
+.cmd-flags-window
+.modal-header
+.modal-close:hover {
+
+    background:
+        #252b38;
+
+    border:
+        none;
+
+    color:
+        #f0f2f7;
+
+}
+
+
+/* =====================================================
+   CMD FLAGS BODY
+===================================================== */
+
+.cmd-flags-window
+.modal-body {
+
+    padding:
+        18px 20px;
+
+    overflow-y:
+        auto;
+
+}
+
+
+/* =====================================================
+   DESCRIPTION
+===================================================== */
+
+.cmd-flags-description {
+
+    margin:
+        0 0 14px 0;
+
+    color:
+        #b8c1d4;
+
+    font-size:
+        14px;
+
+    line-height:
+        1.5;
+
+    text-align:
+        center;
+
+}
+
+
+/* =====================================================
+   FIELD LABELS
+===================================================== */
+
+.cmd-flags-window
+.modal-body
+label {
+
+    display:
+        block;
+
+    width:
+        100%;
+
+    margin:
+        12px 0 6px 0;
+
+    padding:
+        0;
+
+    font-size:
+        14px;
+
+    font-weight:
+        500;
+
+    line-height:
+        1.4;
+
+    color:
+        #b8c1d4;
+
+}
+
+
+/* =====================================================
+   VK LINKS INPUT
+===================================================== */
+
+.cmd-flags-links {
+
+    display:
+        block;
+
+    width:
+        100%;
+
+    box-sizing:
+        border-box;
+
+    padding:
+        10px 12px;
+
+    background:
+        #171b24;
+
+    border:
+        1px solid #303849;
+
+    border-radius:
+        6px;
+
+    color:
+        #e6e6e6;
+
+    font-family:
+        monospace;
+
+    font-size:
+        13px;
+
+    line-height:
+        1.5;
+
+}
+
+
+/* =====================================================
+   WARNING
+===================================================== */
+
+.cmd-flags-warn {
+
+    margin:
+        10px 0 0 0;
+
+    padding:
+        10px 12px;
+
+    background:
+        rgba(
+            224,
+            169,
+            75,
+            .12
+        );
+
+    border:
+        1px solid #e0a94b;
+
+    border-radius:
+        6px;
+
+    color:
+        #e0a94b;
+
+    font-size:
+        13px;
+
+    line-height:
+        1.5;
+
+}
+
+
+/* =====================================================
+   ERROR
+===================================================== */
+
+.cmd-flags-error {
+
+    margin:
+        10px 0 0 0;
+
+    padding:
+        10px 12px;
+
+    background:
+        rgba(
+            224,
+            108,
+            90,
+            .12
+        );
+
+    border:
+        1px solid #e06c5a;
+
+    border-radius:
+        6px;
+
+    color:
+        #e06c5a;
+
+    font-size:
+        13px;
+
+    line-height:
+        1.5;
+
+    word-break:
+        break-word;
+
+}
+
+
+/* =====================================================
+   COMMAND TEXTAREA
+===================================================== */
+
+.cmd-flags-command {
+
+    display:
+        block;
+
+    width:
+        100%;
+
+    min-height:
+        180px;
+
+    box-sizing:
+        border-box;
+
+    padding:
+        12px;
+
+    background:
+        #171b24;
+
+    border:
+        1px solid #303849;
+
+    border-radius:
+        6px;
+
+    color:
+        #e6e6e6;
+
+    font-family:
+        monospace;
+
+    font-size:
+        13px;
+
+    line-height:
+        1.5;
+
+    resize:
+        vertical;
+
+    white-space:
+        pre;
+
+    overflow-x:
+        auto;
+
+}
+
+
+/* =====================================================
+   CMD FLAGS FOOTER
+===================================================== */
+
+.cmd-flags-window
+.modal-footer {
+
+    display:
+        flex;
+
+    justify-content:
+        center;
+
+    align-items:
+        center;
+
+    gap:
+        12px;
+
+    padding:
+        16px 20px;
+
+}
+
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (max-width: 800px) {
+
+    .cmd-flags-window {
+
+        width:
+            100%;
+
+        max-width:
+            calc(
+                100vw - 24px
+            );
+
+        max-height:
+            calc(
+                100vh - 24px
+            );
+
+    }
+
+
+    .cmd-flags-window
+    .modal-body {
+
+        padding:
+            14px;
+
+    }
+
+
+    .cmd-flags-window
+    .modal-footer {
+
+        flex-direction:
+            column;
+
+        align-items:
+            stretch;
+
+    }
+
+
+    .cmd-flags-window
+    .modal-footer
+    button {
+
+        width:
+            100%;
+
+    }
+
+}
+
+
+/* =====================================================
    STANDARD DIALOG MODAL
 ===================================================== */
 

@@ -395,72 +395,12 @@ async copy() {
     }
 
 
-    try {
-
-
-        await navigator.clipboard.writeText(
-            this.uri
-        );
-
-
-        
-
-
-    }
-    catch (error) {
-
-
-        console.error(
-            "[UriExportModal] copy failed",
-            error
-        );
-
-
-        //
-        // Fallback for browsers
-        // where Clipboard API is unavailable.
-        //
-
-        const value =
-            document.getElementById(
-                this.valueId
-            );
-
-
-        if (!value) {
-
-            return;
-
-        }
-
-
-        value.focus();
-
-        value.select();
-
-
-        try {
-
-            document.execCommand(
-                "copy"
-            );
-
-
-            
-
-        }
-        catch (fallbackError) {
-
-            console.error(
-                "[UriExportModal] fallback copy failed",
-                fallbackError
-            );
-
-        }
-
-    }
+    await ClipboardHelper.copy(
+        this.uri
+    );
 
 }
+
 
 };
 

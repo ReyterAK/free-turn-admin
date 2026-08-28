@@ -62,6 +62,8 @@ const App = {
             UriExportModal.init();
         
             UriClientConfigModal.init();
+
+            CmdFlagsModal.init();
         
             await ClientsModule.init();
         
