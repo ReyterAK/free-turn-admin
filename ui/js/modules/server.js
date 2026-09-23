@@ -20,8 +20,7 @@ async init() {
 
     this.bindEvents();
 
-
-    
+    await this.refreshUpdateStatus();
 
 },
 
@@ -228,6 +227,64 @@ async saveSettings() {
 
 },
 
+
+
+async refreshUpdateStatus() {
+
+    const line = document.getElementById("server-update-line");
+    if (!line)
+        return;
+
+    line.textContent = safeT("server.update.checking_status");
+    line.className = "server-update-line";
+
+    try {
+        const data = await ServerEntityLayer.getLatestServerRelease();
+        this.renderUpdateStatus(data);
+    }
+    catch (error) {
+        console.error("[ServerModule] failed to refresh update status", error);
+        if (line) {
+            line.textContent = safeT("server.update.status_error");
+            line.className = "server-update-line error";
+        }
+    }
+},
+
+
+renderUpdateStatus(data) {
+
+    const line = document.getElementById("server-update-line");
+    if (!line)
+        return;
+
+    if (data.status !== "ok" || data.success === false) {
+        line.textContent = safeT("server.update.status_error");
+        line.className = "server-update-line error";
+        return;
+    }
+
+    const currentVersion = ServerStore.get("version")?.version;
+    const latestVersion = data.version;
+
+    if (!currentVersion || !latestVersion) {
+        line.textContent = safeT("server.update.status_unknown");
+        line.className = "server-update-line";
+        return;
+    }
+
+    if (currentVersion === latestVersion) {
+        line.textContent = safeT("server.update.status_up_to_date")
+            .replace("%s", currentVersion);
+        line.className = "server-update-line";
+        return;
+    }
+
+    line.textContent = safeT("server.update.status_available")
+        .replace("%c", currentVersion)
+        .replace("%l", latestVersion);
+    line.className = "server-update-line available";
+},
 
 
 async checkForServerUpdate() {
@@ -467,6 +524,7 @@ async checkForServerUpdate() {
         latestRelease.version
     ) {
 
+        this.renderUpdateStatus(latestRelease);
 
         await Dialog.alert(
             safeT("server.update.up_to_date"),
@@ -664,6 +722,10 @@ catch (error) {
     );
 
 }
+
+
+// Refresh the update-status line so it shows the newly installed version.
+await this.refreshUpdateStatus();
 
 
 await Dialog.alert(

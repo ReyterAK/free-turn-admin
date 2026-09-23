@@ -124,6 +124,13 @@ const App = {
 
 
         //
+        // global event bindings (data-action / data-tab)
+        //
+
+        this.bindEvents();
+
+
+        //
         // default tab: WireGuard — first-run onboarding and the
         // live server/peer picture (клиенты — вторая по частоте)
         //
@@ -215,6 +222,94 @@ const App = {
             RoutingModule.refresh();
 
         }
+
+    },
+
+
+    //
+    // event bindings (replaces inline onclick/onchange handlers so that
+    // CSP can drop 'unsafe-inline' for scripts)
+    //
+
+    bindEvents() {
+
+        document.body.addEventListener("click", (e) => {
+
+            const el = e.target.closest("[data-tab]");
+            if (el) {
+                this.showTab(el.dataset.tab);
+                return;
+            }
+
+            const actionEl = e.target.closest("[data-action]");
+            if (!actionEl)
+                return;
+
+            switch (actionEl.dataset.action) {
+
+                case "switch-lang":
+                    I18N.setLanguage(actionEl.value);
+                    break;
+
+                case "load-clients":
+                    loadClients();
+                    break;
+
+                case "add-client":
+                    ClientsModule.add();
+                    break;
+
+                case "wg-help-url":
+                    WireGuardModule.showHelp("url");
+                    break;
+
+                case "wg-help-user":
+                    WireGuardModule.showHelp("user");
+                    break;
+
+                case "go-server-tab":
+                    this.showTab("server");
+                    break;
+
+                case "wg-create-iface":
+                    WireGuardModule.showCreateForm(true);
+                    break;
+
+                case "logout":
+                    logout();
+                    break;
+
+                case "open-password":
+                    openPasswordModal();
+                    break;
+
+                case "refresh-system":
+                    refreshSystem();
+                    break;
+
+                case "open-event-log":
+                    openEventLog();
+                    break;
+
+                case "open-server-log":
+                    openServerLog();
+                    break;
+
+                case "close-event-log":
+                    closeEventLog();
+                    break;
+
+                case "save-password":
+                    changePassword();
+                    break;
+
+                case "cancel-password":
+                    closePasswordModal();
+                    break;
+
+            }
+
+        });
 
     }
 

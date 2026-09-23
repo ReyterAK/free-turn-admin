@@ -72,7 +72,12 @@ func SaveRouterOSConfig(cfg RouterOSConfig) error {
 	if cfg.PollSeconds < 5 || cfg.PollSeconds > 600 {
 		cfg.PollSeconds = 15
 	}
-	return writeJSONFile(RouterOSFile, cfg)
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return err
+	}
+	// RouterOS-учётные данные (пароль) — только владелец, как wg.json
+	return writeFileAtomic(RouterOSFile, data, 0o600)
 }
 
 // DeleteRouterOSConfig removes the saved RouterOS connection — the

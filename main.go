@@ -44,6 +44,9 @@ func main() {
 		admin.LogEvent("server", "START", "Free Turn Proxy server started")
 	}
 
+	// Start background check for server binary updates (GitHub).
+	admin.StartServerUpdateChecker()
+
 	mux := admin.NewRouter(uiFS, VERSION)
 
 	// HTTP listen port: PORT env (e.g. host-network dev) or 8080 default.

@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -25,6 +26,79 @@ const (
 	MaxLogSize    = 512 * 1024
 	StartupWaitMs = 500
 )
+
+// proxyLogWriter rotates the server log when it exceeds MaxLogSize.
+// It is written to by the exec.Cmd stdout/stderr pipes, so rotation
+// happens while the server is running without restarting it.
+type proxyLogWriter struct {
+	path    string
+	maxSize int64
+	mu      sync.Mutex
+	file    *os.File
+	size    int64
+}
+
+// activeLogWriter is the current proxy log writer. It is closed when
+// the proxy is stopped or restarted.
+var activeLogWriter *proxyLogWriter
+
+func newProxyLogWriter(path string, maxSize int64) *proxyLogWriter {
+	return &proxyLogWriter{path: path, maxSize: maxSize}
+}
+
+func (w *proxyLogWriter) open() error {
+	info, err := os.Stat(w.path)
+	if err == nil {
+		w.size = info.Size()
+	} else {
+		w.size = 0
+	}
+	f, err := os.OpenFile(w.path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return err
+	}
+	w.file = f
+	return nil
+}
+
+func (w *proxyLogWriter) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	if w.file == nil {
+		if err := w.open(); err != nil {
+			return 0, err
+		}
+	}
+
+	// Rotate if the new write would exceed the limit and the log
+	// already has content. This avoids rotating an empty file on the
+	// very first oversized payload.
+	if w.size > 0 && w.size+int64(len(p)) > w.maxSize {
+		_ = w.file.Close()
+		archive := w.path + ".1"
+		_ = os.Remove(archive)
+		_ = os.Rename(w.path, archive)
+		if err := w.open(); err != nil {
+			return 0, err
+		}
+	}
+
+	n, err := w.file.Write(p)
+	w.size += int64(n)
+	return n, err
+}
+
+func (w *proxyLogWriter) Close() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.file == nil {
+		return nil
+	}
+	err := w.file.Close()
+	w.file = nil
+	return err
+}
 
 // ---------------------------------------------------------------------
 // process lifecycle
@@ -121,18 +195,23 @@ func proxyEnv() []string {
 
 func StartProxy() error {
 
-	// Log file append mode (line-buffered like before).
+	// Log file with size-based rotation. The writer is kept open
+	// for the lifetime of the proxy process.
 
-	logFile, err := os.OpenFile(LogFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
-	if err != nil {
+	if activeLogWriter != nil {
+		_ = activeLogWriter.Close()
+	}
+
+	logWriter := newProxyLogWriter(LogFile, MaxLogSize)
+	if err := logWriter.open(); err != nil {
 		return fmt.Errorf("open log: %w", err)
 	}
-	defer logFile.Close()
+	activeLogWriter = logWriter
 
 	cmd := exec.Command(ProxyBin, runArgsList()...)
 	cmd.Env = proxyEnv()
-	cmd.Stdout = logFile
-	cmd.Stderr = logFile
+	cmd.Stdout = logWriter
+	cmd.Stderr = logWriter
 
 	if err := cmd.Start(); err != nil {
 		return err
@@ -203,6 +282,11 @@ func IsProxyRunning() bool {
 }
 
 func StopProxy() error {
+	if activeLogWriter != nil {
+		_ = activeLogWriter.Close()
+		activeLogWriter = nil
+	}
+
 	pid := GetProxyPid()
 	if pid <= 0 {
 		return nil

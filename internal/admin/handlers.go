@@ -41,6 +41,18 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("X-Frame-Options", "DENY")
 	w.Header().Set("Referrer-Policy", "no-referrer")
+	// CSP: strict same-origin policy. Inline scripts/styles have been
+	// refactored out of the UI, so 'unsafe-inline' is not required.
+	w.Header().Set("Content-Security-Policy",
+		"default-src 'self'; "+
+		"script-src 'self'; "+
+		"style-src 'self'; "+
+		"connect-src 'self'; "+
+		"img-src 'self' data:; "+
+		"font-src 'self'; "+
+		"frame-ancestors 'none'; "+
+		"base-uri 'self'; "+
+		"form-action 'self'")
 
 	switch {
 	case req.URL.Path == "/healthz":
@@ -253,6 +265,15 @@ func (r *Router) authStatus(w http.ResponseWriter, req *http.Request) {
 }
 
 func (r *Router) login(w http.ResponseWriter, req *http.Request) {
+	if !loginRateLimit.allow(req) {
+		LogEvent("auth", "LOGIN_RATE_LIMITED", "Login rate limit exceeded")
+		writeJSONStatus(w, http.StatusTooManyRequests, map[string]any{
+			"status": "rate_limited",
+			"error":  "too many failed login attempts",
+		})
+		return
+	}
+
 	data := readBodyJSON(req)
 	user, _ := data["user"].(string)
 	password, _ := data["password"].(string)
@@ -264,6 +285,7 @@ func (r *Router) login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	loginRateLimit.recordFailure(req)
 	LogEvent("auth", "LOGIN_FAILED", fmt.Sprintf("Failed login attempt for user %s", user))
 	writeJSONStatus(w, http.StatusUnauthorized, map[string]any{"status": "fail"})
 }
@@ -534,7 +556,7 @@ func (r *Router) updateDownload(w http.ResponseWriter, req *http.Request) {
 }
 
 func (r *Router) updateLatest(w http.ResponseWriter, req *http.Request) {
-	result := GetLatestServerRelease()
+	result := LatestServerUpdate(req.URL.Query().Get("force") == "1")
 
 	if success, _ := result["success"].(bool); !success {
 		response := map[string]any{

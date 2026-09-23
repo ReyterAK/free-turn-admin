@@ -22,15 +22,110 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
 const (
 	githubReleaseURL = "https://api.github.com/repos/samosvalishe/free-turn-proxy/releases/latest"
 	updateTempFile   = "free-turn-proxy.update.tmp"
+
+	serverUpdateCacheFile = "server-update-check.json"
+	serverUpdateTTL       = 24 * time.Hour
 )
 
 var httpClient = &http.Client{Timeout: 30 * time.Second}
+
+// ---------------------------------------------------------------------
+// server update cache + background checker
+// ---------------------------------------------------------------------
+
+type serverUpdateCache struct {
+	CheckedAt int64          `json:"checked_at"`
+	Release   map[string]any `json:"release"`
+}
+
+// latestServerRelease holds the most recent check result in memory.
+// It is initialised to a "not checked" state so the UI has a status
+// before the first background check completes.
+var latestServerRelease atomic.Value
+
+func init() {
+	latestServerRelease.Store(map[string]any{
+		"success": false,
+		"code":    "not_checked",
+		"error":   "Проверка обновлений ещё не выполнена.",
+	})
+}
+
+func serverUpdateCachePath() string {
+	return filepath.Join(ConfigDir, serverUpdateCacheFile)
+}
+
+func readServerUpdateCache() (serverUpdateCache, error) {
+	var c serverUpdateCache
+	err := readJSONFile(serverUpdateCachePath(), &c)
+	return c, err
+}
+
+func cacheServerUpdateResult(result map[string]any) {
+	c := serverUpdateCache{
+		CheckedAt: time.Now().Unix(),
+		Release:   result,
+	}
+	_ = writeJSONFile(serverUpdateCachePath(), c)
+	latestServerRelease.Store(result)
+}
+
+// LatestServerUpdate returns the cached GitHub release information if it is
+// fresh, otherwise fetches it. Pass force=true to bypass the cache.
+func LatestServerUpdate(force bool) map[string]any {
+	now := time.Now().Unix()
+	 ttl := int64(serverUpdateTTL.Seconds())
+
+	// 1. In-memory cache.
+	if !force {
+		mem := latestServerRelease.Load().(map[string]any)
+		if checkedAt, ok := mem["checked_at"].(int64); ok && now-checkedAt < ttl {
+			mem["cached"] = true
+			return mem
+		}
+	}
+
+	// 2. Persistent cache (survives container restarts).
+	if !force {
+		if c, err := readServerUpdateCache(); err == nil && c.Release != nil &&
+			now-c.CheckedAt < ttl {
+			c.Release["checked_at"] = c.CheckedAt
+			c.Release["cached"] = true
+			latestServerRelease.Store(c.Release)
+			return c.Release
+		}
+	}
+
+	// 3. Fetch from GitHub.
+	result := GetLatestServerRelease()
+	result["checked_at"] = now
+	result["cached"] = false
+	cacheServerUpdateResult(result)
+	return result
+}
+
+// StartServerUpdateChecker runs the first update check asynchronously and
+// then rechecks every 24 hours. It is safe to call multiple times.
+func StartServerUpdateChecker() {
+	go func() {
+		// Initial check shortly after startup so the UI status populates quickly.
+		time.Sleep(10 * time.Second)
+		LatestServerUpdate(false)
+
+		ticker := time.NewTicker(serverUpdateTTL)
+		defer ticker.Stop()
+		for range ticker.C {
+			LatestServerUpdate(false)
+		}
+	}()
+}
 
 // ---------------------------------------------------------------------
 // latest release

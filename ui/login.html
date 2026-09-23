@@ -33,7 +33,6 @@
         <select
             id="lang-switcher"
             class="lang-switcher"
-            onchange="I18N.setLanguage(this.value)"
             title="Language">
 
             <option value="ru">
@@ -55,9 +54,7 @@
         <div id="login-form-container">
 
 
-            <form
-                onsubmit="login(); return false;"
-            >
+            <form id="login-form">
 
 
                 <input
@@ -103,8 +100,7 @@
 
         <div
             id="create-account-container"
-            style="display: none;"
-        >
+            class="hidden">
 
 
             <p
@@ -121,9 +117,7 @@
             </p>
 
 
-            <form
-                onsubmit="createAccount(); return false;"
-            >
+            <form id="create-account-form">
 
 
                 <input
