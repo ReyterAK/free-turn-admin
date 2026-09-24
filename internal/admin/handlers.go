@@ -46,6 +46,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Security-Policy",
 		"default-src 'self'; "+
 		"script-src 'self'; "+
+		"script-src-attr 'unsafe-inline'; "+
 		"style-src 'self'; "+
 		"connect-src 'self'; "+
 		"img-src 'self' data:; "+

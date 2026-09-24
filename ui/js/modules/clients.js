@@ -768,6 +768,69 @@ try {
     }
 
 
+    //
+    // Per-client VK Calls link.
+    //
+    // Since free-turn-proxy 4.0.0 the link can be carried
+    // inside freeturn:// as the "vk" field. It is optional
+    // and unique for each client.
+    //
+
+    const vkLink =
+        await Dialog.prompt(
+            safeT("clients.export_link_title"),
+            "",
+            safeT("clients.export_link_message"),
+            value => {
+
+                const v =
+                    value.trim();
+
+
+                if (
+                    !v
+                ) {
+
+                    return true;
+
+                }
+
+
+                if (
+                    v.startsWith(
+                        ClientCmdBuilder.linksPrefix
+                    )
+                ) {
+
+                    return true;
+
+                }
+
+
+                return (
+                    safeT("cmd_flags.invalid_links") +
+                    " " +
+                    ClientCmdBuilder.linksPrefix +
+                    "..."
+                );
+
+            }
+        );
+
+
+    if (
+        vkLink === false
+    ) {
+
+        return;
+
+    }
+
+
+    exportData.vk =
+        vkLink.trim();
+
+
     const payload =
         UriExportPayloadBuilder.build(
             exportData

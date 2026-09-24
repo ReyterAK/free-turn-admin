@@ -143,6 +143,8 @@
   "clients.not_found": "Не удалось найти выбранного клиента.",
   "clients.export_error_title": "Ошибка экспорта",
   "clients.export_error_message": "Не удалось собрать данные для экспорта URI.",
+  "clients.export_link_title": "Ссылка VK Calls",
+  "clients.export_link_message": "Введите ссылку на VK Calls (https://vk.ru/call/join/...), чтобы встроить её в freeturn://. Оставьте поле пустым, если не нужно.",
   "clients.search_placeholder": "Поиск клиентов...",
   "clients.col.wg": "WireGuard",
   "clients.no_binding": "—",

@@ -56,11 +56,13 @@ const ServerEntityLayer = {
     //
 
 
-    async getLatestServerRelease() {
+    async getLatestServerRelease(force = false) {
 
-        return ApiClient.request(
-            "/api/system/update/latest"
-        );
+        const url = force
+            ? "/api/system/update/latest?force=1"
+            : "/api/system/update/latest";
+
+        return ApiClient.request(url);
 
     },
 

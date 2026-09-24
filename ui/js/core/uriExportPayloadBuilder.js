@@ -232,6 +232,57 @@ build(
 
         }
 
+
+        //
+        // Obfuscation packet timing (pacing).
+        //
+        // Sent as integer milliseconds in the "timing" field.
+        // Only meaningful when an obfuscation profile is active.
+        //
+
+        const timingMs =
+            Number(
+                data.obf_timing
+            );
+
+        if (
+            !isNaN(timingMs) &&
+            timingMs > 0
+        ) {
+
+            payload.timing =
+                timingMs;
+
+        }
+
+    }
+
+
+    //
+    // VK Calls link.
+    //
+    // Optional per-client call link carried inside freeturn://
+    // since free-turn-proxy 4.0.0.
+    //
+
+    if (
+        data.vk &&
+        typeof data.vk === "string"
+    ) {
+
+        const vk =
+            data.vk.trim();
+
+
+        if (
+            vk
+        ) {
+
+            payload.vk =
+                vk;
+
+        }
+
     }
 
 

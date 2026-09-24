@@ -393,7 +393,7 @@ async checkForServerUpdate() {
         try {
     
             latestRelease =
-                await ServerEntityLayer.getLatestServerRelease();
+                await ServerEntityLayer.getLatestServerRelease(true);
     
     
             
@@ -711,6 +711,7 @@ Dialog.close();
 try {
 
     await StatusModule.refresh();
+    await ServerStore.refreshVersion();
 
 
 }
