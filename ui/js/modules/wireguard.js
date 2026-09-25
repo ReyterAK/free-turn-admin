@@ -273,6 +273,24 @@ showHelp(kind) {
 },
 
 //
+// form visibility
+//
+
+// isFormVisible reports whether a toggleable form (interface or
+// peer) is currently shown. The initial hidden state comes from the
+// .hidden CSS class (the strict-CSP release replaced inline
+// style="display:none"), so the inline style alone is not reliable.
+isFormVisible(form) {
+
+    return window
+        .getComputedStyle(
+            form
+        )
+        .display !== "none";
+
+},
+
+//
 // create interface (v2)
 //
 
@@ -287,7 +305,7 @@ showCreateForm(prefillPort) {
         return;
 
     const visible =
-        form.style.display !== "none";
+        this.isFormVisible(form);
 
     form.style.display =
         visible ? "none" : "block";
@@ -668,7 +686,7 @@ async showPeerForm() {
         return;
 
     const visible =
-        form.style.display !== "none";
+        this.isFormVisible(form);
 
     form.style.display =
         visible ? "none" : "block";
@@ -1993,6 +2011,8 @@ updateCreateDeleteButton(ifaceName) {
 
         btn.style.display = "none";
 
+        this.hideCreateForm();
+
         return;
 
     }
@@ -2000,6 +2020,12 @@ updateCreateDeleteButton(ifaceName) {
     btn.style.display = "";
 
     if (ifaceName) {
+
+        // Сервер работает только с одним интерфейсом — найденным.
+        // Окно создания не должно оставаться открытым (например,
+        // если оно было открыто в состоянии «интерфейс не найден»,
+        // а автообновление затем нашло интерфейс).
+        this.hideCreateForm();
 
         btn.textContent =
             safeT("wg.delete_iface");

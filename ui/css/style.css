@@ -223,10 +223,6 @@ overflow: auto;
 width: 100%;
 }
 
-.hidden {
-display: none;
-}
-
 .tab.hidden {
 display: none !important;
 }
@@ -3262,4 +3258,22 @@ h3,
 
 .server-update-line.available {
     color: #98c379;
+}
+
+/* =====================================================
+    VISIBILITY UTILITY
+    ===================================================== */
+
+/*
+  .hidden must stay LAST in this file. The strict-CSP release replaced
+  inline style="display:none" with this class, but component rules set
+  display on the same elements later in the sheet — .wg-create-form and
+  .wg-box both use display:flex, which would otherwise win over it
+  (equal specificity, later rule) and leave those boxes permanently
+  visible. Inline styles set by the modules at runtime still override
+  this class, so the show/hide code keeps working.
+*/
+
+.hidden {
+display: none;
 }
