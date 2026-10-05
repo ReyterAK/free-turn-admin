@@ -1,0 +1,56 @@
+name: build
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          check-latest: true
+      - name: vet
+        run: go vet ./...
+      - name: test
+        run: go test ./...
+
+  # The panel is a static arm64 binary (CGO off); the UI is embedded.
+  # The proxy binary under core/ is a prebuilt third-party arm64 ELF that
+  # the Dockerfile copies verbatim, so the image build is a plain copy.
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          check-latest: true
+      - name: build arm64
+        env:
+          CGO_ENABLED: '0'
+          GOOS: linux
+          GOARCH: arm64
+        run: go build -trimpath -ldflags "-s -w" -o bin/free-turn-admin .
+      - name: build amd64
+        env:
+          CGO_ENABLED: '0'
+          GOOS: linux
+          GOARCH: amd64
+        run: go build -trimpath -ldflags "-s -w" -o bin/free-turn-admin-amd64 .
+      - name: arm64 image
+        run: docker build --platform linux/arm64 -t free-turn-admin:ci .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: free-turn-admin-binaries
+          path: |
+            bin/free-turn-admin
+            bin/free-turn-admin-amd64
