@@ -17,6 +17,10 @@ Go 1.25 · Alpine 3.24.2 · embedded UI · no external database.
 > versions. The Android client mirror lives at
 > [hackdiaz-dev/turn-proxy-android](https://github.com/hackdiaz-dev/turn-proxy-android).
 
+> **Container image:** [`reyterak/free-turn-admin-mikrotik`](https://hub.docker.com/r/reyterak/free-turn-admin-mikrotik)
+> on Docker Hub — that page carries the full Russian installation guide.
+> Pull it directly on RouterOS: `reyterak/free-turn-admin-mikrotik:1.2.3`.
+
 ## What it does
 
 - **Server** — start/stop the proxy process, edit its run arguments and URI
