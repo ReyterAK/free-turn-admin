@@ -15,8 +15,11 @@
 package admin
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestNormalizeTag(t *testing.T) {
@@ -105,5 +108,57 @@ func TestFailedCheckIsNotCached(t *testing.T) {
 	// No cache file at all is the other acceptable outcome.
 	if _, statErr := os.Stat(serverUpdateCachePath()); statErr == nil {
 		t.Error("cache file exists although nothing succeeded")
+	}
+}
+
+// TestStaleFailureIsNotReplayed covers users already on 1.2.2: the failed
+// lookup from the vanished upstream is ALREADY on disk, so guarding only
+// the write path does not help them. LatestServerUpdate must refuse to
+// serve a cached failure and must not overwrite the good result with a
+// fresh one.
+//
+// A stub release endpoint returning 404 keeps the test offline and makes
+// the "network still broken" case deterministic.
+func TestStaleFailureIsNotReplayed(t *testing.T) {
+	origDir := ConfigDir
+	ConfigDir = t.TempDir()
+	t.Cleanup(func() { ConfigDir = origDir })
+
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, `{"message":"Not Found"}`, http.StatusNotFound)
+		}))
+	defer srv.Close()
+	origURL := githubReleaseURL
+	githubReleaseURL = srv.URL
+	t.Cleanup(func() { githubReleaseURL = origURL })
+
+	// Seed the stale failure exactly as 1.2.2 wrote it.
+	if err := writeJSONFile(serverUpdateCachePath(), serverUpdateCache{
+		CheckedAt: time.Now().Unix(), // inside the 24h TTL
+		Release: map[string]any{
+			"success": false,
+			"code":    "github_http",
+			"status":  404,
+			"error":   "GitHub API error: 404",
+		},
+	}); err != nil {
+		t.Fatalf("seeding stale cache: %v", err)
+	}
+
+	res := LatestServerUpdate(false) // force=false -> cache path is taken
+
+	// The stub still answers 404, so the result is a failure — but it
+	// must be a FRESH one. cached==false proves the stored failure was
+	// not replayed: before the fix the cached entry came back verbatim.
+	if res["cached"] == true {
+		t.Fatalf("a cached failure was served instead of re-checking: %v", res)
+	}
+	if _, fresh := res["error"]; !fresh {
+		t.Errorf("result lacks a live error field: %v", res)
+	}
+	// And the stale entry must not have been handed back unchanged.
+	if res["code"] == "github_http" && res["cached"] == true {
+		t.Error("stale failure replayed")
 	}
 }

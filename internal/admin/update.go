@@ -34,12 +34,14 @@ const (
 	// Tags carry a "-mirror" suffix (v4.0.1-mirror); normalizeTag
 	// strips it so the UI compares 4.0.1 against 4.0.1 instead of
 	// offering an update that is already installed.
-	githubReleaseURL = "https://api.github.com/repos/hackdiaz-dev/free-turn-proxy/releases/latest"
-	updateTempFile   = "free-turn-proxy.update.tmp"
+	updateTempFile = "free-turn-proxy.update.tmp"
 
 	serverUpdateCacheFile = "server-update-check.json"
 	serverUpdateTTL       = 24 * time.Hour
 )
+
+// githubReleaseURL is a var so tests can point it at a stub server.
+var githubReleaseURL = "https://api.github.com/repos/hackdiaz-dev/free-turn-proxy/releases/latest"
 
 var httpClient = &http.Client{Timeout: 30 * time.Second}
 
@@ -94,8 +96,14 @@ func LatestServerUpdate(force bool) map[string]any {
 	if !force {
 		mem := latestServerRelease.Load().(map[string]any)
 		if checkedAt, ok := mem["checked_at"].(int64); ok && now-checkedAt < ttl {
-			mem["cached"] = true
-			return mem
+			// Never serve a remembered failure: it may predate the
+			// switch to a working endpoint, and /config outlives the
+			// image, so replaying it would report a dead source as
+			// current for the rest of the TTL.
+			if success, _ := mem["success"].(bool); success {
+				mem["cached"] = true
+				return mem
+			}
 		}
 	}
 
@@ -103,10 +111,18 @@ func LatestServerUpdate(force bool) map[string]any {
 	if !force {
 		if c, err := readServerUpdateCache(); err == nil && c.Release != nil &&
 			now-c.CheckedAt < ttl {
-			c.Release["checked_at"] = c.CheckedAt
-			c.Release["cached"] = true
-			latestServerRelease.Store(c.Release)
-			return c.Release
+			// A cached failure is never served: it may predate the
+			// switch to a working endpoint and /config outlives the
+			// image, so replaying it would report a dead source as
+			// current for the rest of the TTL. Drop it and re-check.
+			if success, _ := c.Release["success"].(bool); !success {
+				_ = os.Remove(serverUpdateCachePath())
+			} else {
+				c.Release["checked_at"] = c.CheckedAt
+				c.Release["cached"] = true
+				latestServerRelease.Store(c.Release)
+				return c.Release
+			}
 		}
 	}
 
