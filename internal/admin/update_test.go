@@ -14,7 +14,10 @@
 
 package admin
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 func TestNormalizeTag(t *testing.T) {
 	cases := []struct {
@@ -62,5 +65,45 @@ func TestNormalizeTagMatchesRunningServer(t *testing.T) {
 				"panel would offer a permanent phantom update",
 				tag, got, serverReported)
 		}
+	}
+}
+
+// TestFailedCheckIsNotCached pins the bug reported after upgrading to
+// 1.2.2: the panel kept showing "could not check for server updates"
+// although the mirror answered fine. The previous release cached the
+// failure together with the success flag, and /config is a persistent
+// mount, so a stale entry survived an image upgrade and was replayed for
+// the whole 24h TTL. A failed lookup must never reach the cache.
+func TestFailedCheckIsNotCached(t *testing.T) {
+	origDir := ConfigDir
+	ConfigDir = t.TempDir()
+	t.Cleanup(func() { ConfigDir = origDir })
+
+	failed := map[string]any{
+		"success": false,
+		"code":    "github_http",
+		"status":  404,
+		"error":   "GitHub API error: 404",
+	}
+
+	// LatestServerUpdate persists a result only when it succeeded.
+	// Reproduce that decision without touching the network.
+	if success, _ := failed["success"].(bool); success {
+		t.Fatal("fixture must be a failed lookup")
+	}
+	cacheIfSuccessful(failed)
+
+	c, err := readServerUpdateCache()
+	if err == nil && c.Release != nil {
+		if ok, _ := c.Release["success"].(bool); !ok {
+			t.Error("a failed lookup was persisted; it would be replayed " +
+				"for 24h and across image upgrades")
+		}
+	return
+	}
+
+	// No cache file at all is the other acceptable outcome.
+	if _, statErr := os.Stat(serverUpdateCachePath()); statErr == nil {
+		t.Error("cache file exists although nothing succeeded")
 	}
 }

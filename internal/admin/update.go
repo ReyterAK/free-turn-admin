@@ -114,8 +114,22 @@ func LatestServerUpdate(force bool) map[string]any {
 	result := GetLatestServerRelease()
 	result["checked_at"] = now
 	result["cached"] = false
-	cacheServerUpdateResult(result)
+	cacheIfSuccessful(result)
 	return result
+}
+
+// cacheIfSuccessful persists the update-check result, but only when the
+// lookup actually succeeded. Caching a failure would replay it for the
+// whole TTL: a network blip, a GitHub rate limit or a mirror outage
+// would keep reporting "could not check for server updates" for a day.
+// Worse, /config is a persistent mount, so a stale failure survives an
+// image upgrade — after switching from a dead upstream to a working
+// mirror the panel would keep serving the old error.
+func cacheIfSuccessful(result map[string]any) {
+	if success, _ := result["success"].(bool); !success {
+		return
+	}
+	cacheServerUpdateResult(result)
 }
 
 // StartServerUpdateChecker runs the first update check asynchronously and
