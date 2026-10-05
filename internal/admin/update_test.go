@@ -1,7 +1,7 @@
 //
 // update_test.go
 // FreeTurn Admin
-// Release 1.2.2
+// Release 1.2.3
 //
 // Tests for release-tag normalization.
 //
