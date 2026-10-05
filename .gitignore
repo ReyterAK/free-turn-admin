@@ -2,15 +2,19 @@
 bin/
 *.tar
 
-# backups
+# backups — git already keeps the history; binaries never belong in it twice
 *.bak*
 *.backup
+
+config/
+*.db
+*.db-shm
+*.db-wal
+free-turn-admin-dev-config/
+*.session.key
 
 # editor/OS noise
 .vscode/
 .idea/
 *.swp
 .DS_Store
-
-# local dev config (never inside the repo)
-free-turn-admin-dev-config/

@@ -27,7 +27,14 @@ import (
 )
 
 const (
-	githubReleaseURL = "https://api.github.com/repos/samosvalishe/free-turn-proxy/releases/latest"
+	// The original upstream (samosvalishe/free-turn-proxy) has
+	// disappeared, taking its account and releases with it. The
+	// community mirror hackdiaz-dev/free-turn-proxy keeps the same
+	// asset names and tag history, so only the URL changes here.
+	// Tags carry a "-mirror" suffix (v4.0.1-mirror); normalizeTag
+	// strips it so the UI compares 4.0.1 against 4.0.1 instead of
+	// offering an update that is already installed.
+	githubReleaseURL = "https://api.github.com/repos/hackdiaz-dev/free-turn-proxy/releases/latest"
 	updateTempFile   = "free-turn-proxy.update.tmp"
 
 	serverUpdateCacheFile = "server-update-check.json"
@@ -200,7 +207,7 @@ func GetLatestServerRelease() map[string]any {
 		}
 	}
 
-	version := strings.TrimPrefix(release.TagName, "v")
+	version := normalizeTag(release.TagName)
 
 	// MikroTik container is ARM64 only.
 	var asset struct {
@@ -242,6 +249,19 @@ func GetLatestServerRelease() map[string]any {
 			"digest":      asset.Digest,
 		},
 	}
+}
+
+// normalizeTag reduces a release tag to a comparable version: it
+// strips the leading "v" and any pre-release/build suffix, so the
+// mirror's "v4.0.1-mirror" becomes "4.0.1" and matches the version
+// the running server reports. Without this the panel would offer an
+// update forever on a version that is already installed.
+func normalizeTag(tag string) string {
+	v := strings.TrimPrefix(strings.TrimSpace(tag), "v")
+	if i := strings.IndexAny(v, "-+"); i >= 0 {
+		v = v[:i]
+	}
+	return v
 }
 
 // ---------------------------------------------------------------------
